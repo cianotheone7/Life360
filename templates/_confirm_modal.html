@@ -1,0 +1,30 @@
+{# Minimal confirm modal partial #}
+<style>
+#gcBackdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 9998; }
+#globalConfirmModal { position: fixed; inset: 0; display: grid; place-items: center; z-index: 9999; }
+#globalConfirmModal[hidden], #gcBackdrop[hidden] { display: none !important; }
+#globalConfirmModal .modal-card {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid #2a2a2a;
+  border-radius: 16px;
+  padding: 16px 18px;
+  max-width: 520px;
+  width: calc(100% - 32px);
+  box-shadow: 0 10px 30px rgba(0,0,0,.55);
+}
+#globalConfirmModal .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+#globalConfirmModal button { padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; cursor: pointer; }
+#gcConfirm { background: var(--danger); color: #fff; border-color: var(--danger); }
+</style>
+<div id="gcBackdrop" hidden></div>
+<div id="globalConfirmModal" role="dialog" aria-labelledby="globalConfirmTitle" aria-describedby="globalConfirmText" hidden>
+  <div class="modal-card">
+    <h3 id="globalConfirmTitle" style="margin:0 0 6px;font-size:18px;">Confirm action</h3>
+    <p id="globalConfirmText" style="margin:0 0 12px;">Are you sure?</p>
+    <div class="modal-actions">
+      <button id="gcCancel" type="button">Cancel</button>
+      <button id="gcConfirm" type="button">Delete</button>
+    </div>
+  </div>
+</div>

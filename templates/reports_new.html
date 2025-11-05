@@ -1,0 +1,794 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics - Life360 Dashboard{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+    <!-- Header -->
+    <div class="reports-header">
+        <div class="reports-header-content">
+            <h1 class="reports-title">
+                <span class="reports-icon">📊</span>
+                Reports & Analytics
+            </h1>
+            <p class="reports-subtitle">Comprehensive insights and data exports for your Life360 operations</p>
+        </div>
+    </div>
+
+    <!-- Quick Stats Dashboard -->
+    <div class="stats-dashboard">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">👩‍⚕️</div>
+                <div class="stat-content">
+                    <div class="stat-number">259</div>
+                    <div class="stat-label">Total Practitioners</div>
+                    <div class="stat-details">
+                        <span class="stat-badge stat-success">0 Onboarded</span>
+                        <span class="stat-badge stat-warning">259 Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">📋</div>
+                <div class="stat-content">
+                    <div class="stat-number">45</div>
+                    <div class="stat-label">Total Orders</div>
+                    <div class="stat-details">
+                        <span class="stat-badge stat-success">12 Completed</span>
+                        <span class="stat-badge stat-warning">33 Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div class="stat-content">
+                    <div class="stat-number">1,409</div>
+                    <div class="stat-label">Stock Units</div>
+                    <div class="stat-details">
+                        <span class="stat-badge stat-danger">12 Low Stock</span>
+                        <span class="stat-badge stat-warning">0 Expiring</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">📁</div>
+                <div class="stat-content">
+                    <div class="stat-number">28</div>
+                    <div class="stat-label">Uploaded Files</div>
+                    <div class="stat-details">
+                        <span class="stat-badge stat-info">8 This Month</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Section -->
+    <div class="export-section">
+        <div class="export-card">
+            <div class="export-header">
+                <div class="export-title">
+                    <span class="export-icon">📤</span>
+                    Data Exports
+                </div>
+                <p class="export-subtitle">Download clean Excel files for management and analysis</p>
+            </div>
+            
+            <div class="export-grid">
+                <div class="export-item">
+                    <div class="export-item-icon">👩‍⚕️</div>
+                    <div class="export-item-content">
+                        <h3>Practitioners Report</h3>
+                        <p>Complete practitioner database with contact details, onboarding status, and provider information.</p>
+                        <div class="export-actions">
+                            <a href="{{ url_for('export_practitioners') }}" class="btn btn-primary">
+                                <i class="fas fa-download"></i> Export Practitioners (.xlsx)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="export-item">
+                    <div class="export-item-icon">📋</div>
+                    <div class="export-item-content">
+                        <h3>Orders Report</h3>
+                        <p>Order history with workflow status, assigned barcodes, and completion tracking.</p>
+                        <div class="export-actions">
+                            <a href="{{ url_for('export_orders') }}" class="btn btn-primary">
+                                <i class="fas fa-download"></i> Export Orders (.xlsx)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="export-item">
+                    <div class="export-item-icon">📦</div>
+                    <div class="export-item-content">
+                        <h3>Stock Report</h3>
+                        <p>Inventory levels, expiry dates, batch numbers, and stock movements.</p>
+                        <div class="export-actions">
+                            <a href="#" class="btn btn-primary">
+                                <i class="fas fa-download"></i> Export Stock (.xlsx)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="export-item">
+                    <div class="export-item-icon">📁</div>
+                    <div class="export-item-content">
+                        <h3>Files Report</h3>
+                        <p>Uploaded files by provider with metadata and download links.</p>
+                        <div class="export-actions">
+                            <a href="#" class="btn btn-primary">
+                                <i class="fas fa-download"></i> Export Files (.xlsx)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Section -->
+    <div class="analytics-section">
+        <div class="analytics-card">
+            <div class="analytics-header">
+                <div class="analytics-title">
+                    <span class="analytics-icon">📈</span>
+                    Performance Analytics
+                </div>
+                <p class="analytics-subtitle">Key metrics and trends for business insights</p>
+            </div>
+            
+            <div class="analytics-grid">
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <h4>Order Completion Rate</h4>
+                        <span class="metric-trend positive">↗ +12%</span>
+                    </div>
+                    <div class="metric-value">26.7%</div>
+                    <div class="metric-chart">
+                        <div class="chart-bar" style="width: 26.7%"></div>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <h4>Practitioner Onboarding</h4>
+                        <span class="metric-trend positive">↗ +8%</span>
+                    </div>
+                    <div class="metric-value">0%</div>
+                    <div class="metric-chart">
+                        <div class="chart-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <h4>Stock Utilization</h4>
+                        <span class="metric-trend neutral">→ 0%</span>
+                    </div>
+                    <div class="metric-value">85%</div>
+                    <div class="metric-chart">
+                        <div class="chart-bar" style="width: 85%"></div>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <h4>Average Order Time</h4>
+                        <span class="metric-trend negative">↘ -5%</span>
+                    </div>
+                    <div class="metric-value">7.2 days</div>
+                    <div class="metric-chart">
+                        <div class="chart-bar" style="width: 75%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Provider Performance -->
+    <div class="provider-performance">
+        <div class="provider-card">
+            <div class="provider-header">
+                <div class="provider-title">
+                    <span class="provider-icon">🏢</span>
+                    Provider Performance
+                </div>
+                <p class="provider-subtitle">Performance metrics by provider</p>
+            </div>
+            
+            <div class="provider-table">
+                <div class="table-header">
+                    <div class="table-cell">Provider</div>
+                    <div class="table-cell">Practitioners</div>
+                    <div class="table-cell">Orders</div>
+                    <div class="table-cell">Completion Rate</div>
+                    <div class="table-cell">Status</div>
+                </div>
+                
+                <div class="table-row">
+                    <div class="table-cell provider-name">Geneway</div>
+                    <div class="table-cell">45</div>
+                    <div class="table-cell">12</div>
+                    <div class="table-cell">
+                        <div class="completion-bar">
+                            <div class="completion-fill" style="width: 75%"></div>
+                            <span class="completion-text">75%</span>
+                        </div>
+                    </div>
+                    <div class="table-cell">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                </div>
+                
+                <div class="table-row">
+                    <div class="table-cell provider-name">Optiway</div>
+                    <div class="table-cell">38</div>
+                    <div class="table-cell">8</div>
+                    <div class="table-cell">
+                        <div class="completion-bar">
+                            <div class="completion-fill" style="width: 62%"></div>
+                            <span class="completion-text">62%</span>
+                        </div>
+                    </div>
+                    <div class="table-cell">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                </div>
+                
+                <div class="table-row">
+                    <div class="table-cell provider-name">Enbiosis</div>
+                    <div class="table-cell">52</div>
+                    <div class="table-cell">15</div>
+                    <div class="table-cell">
+                        <div class="completion-bar">
+                            <div class="completion-fill" style="width: 80%"></div>
+                            <span class="completion-text">80%</span>
+                        </div>
+                    </div>
+                    <div class="table-cell">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Reports Page Styles */
+.reports-container {
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* Header Styles */
+.reports-header {
+    margin-bottom: 30px;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.reports-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.reports-icon {
+    font-size: 2.2rem;
+    filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));
+}
+
+.reports-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 400;
+}
+
+/* Stats Dashboard */
+.stats-dashboard {
+    margin-bottom: 30px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
+}
+
+.stat-details {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.stat-badge {
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-success {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.stat-warning {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.stat-danger {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.stat-info {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* Export Section */
+.export-section {
+    margin-bottom: 30px;
+}
+
+.export-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.export-header {
+    padding: 24px 24px 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+}
+
+.export-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.export-icon {
+    font-size: 1.3rem;
+}
+
+.export-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    margin: 0;
+}
+
+.export-grid {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.export-item {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    gap: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.export-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.export-item-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.export-item-content {
+    flex: 1;
+}
+
+.export-item-content h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 8px 0;
+}
+
+.export-item-content p {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 16px 0;
+    line-height: 1.4;
+}
+
+.export-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Button Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+/* Analytics Section */
+.analytics-section {
+    margin-bottom: 30px;
+}
+
+.analytics-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.analytics-header {
+    padding: 24px 24px 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+}
+
+.analytics-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.analytics-icon {
+    font-size: 1.3rem;
+}
+
+.analytics-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    margin: 0;
+}
+
+.analytics-grid {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.metric-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.metric-header h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+}
+
+.metric-trend {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 6px;
+}
+
+.metric-trend.positive {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.metric-trend.negative {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.metric-trend.neutral {
+    background: rgba(107, 114, 128, 0.2);
+    color: #6b7280;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 12px;
+}
+
+.metric-chart {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.chart-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+/* Provider Performance */
+.provider-performance {
+    margin-bottom: 30px;
+}
+
+.provider-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.provider-header {
+    padding: 24px 24px 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+}
+
+.provider-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.provider-icon {
+    font-size: 1.3rem;
+}
+
+.provider-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    margin: 0;
+}
+
+.provider-table {
+    padding: 24px;
+}
+
+.table-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1.5fr 1fr;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 16px;
+}
+
+.table-cell {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1.5fr 1fr;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    align-items: center;
+}
+
+.table-row:last-child {
+    border-bottom: none;
+}
+
+.provider-name {
+    font-weight: 600;
+    color: #fff;
+}
+
+.completion-bar {
+    position: relative;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.completion-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #059669);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.completion-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-active {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .reports-container {
+        padding: 16px;
+    }
+    
+    .reports-title {
+        font-size: 2rem;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .export-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .table-header,
+    .table-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .table-cell {
+        padding: 8px 0;
+    }
+}
+</style>
+{% endblock %}

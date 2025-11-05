@@ -1,0 +1,12 @@
+.actions,
+.order-actions,
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* Ensure pill buttons keep a sensible width */
+form .btn { min-width: 120px; }
+/* Fallback: if no container classes, space adjacent buttons */
+.btn + .btn { margin-left: 8px; }

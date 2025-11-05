@@ -1,0 +1,528 @@
+{% extends "base.html" %}
+
+{% block title %}File Uploads - Life360 Dashboard{% endblock %}
+
+{% block content %}
+<div class="uploads-container">
+    <!-- Header -->
+    <div class="uploads-header">
+        <div class="uploads-header-content">
+            <h1 class="uploads-title">
+                <span class="uploads-icon">📁</span>
+                File Uploads
+            </h1>
+            <p class="uploads-subtitle">Upload and manage files for each provider</p>
+        </div>
+    </div>
+
+    <!-- Upload Form Card -->
+    <div class="upload-form-card">
+        <div class="upload-form-header">
+            <div class="upload-form-title">
+                <span class="upload-form-icon">⬆️</span>
+                Upload New File
+            </div>
+        </div>
+        
+        <div class="upload-form-body">
+            <form class="upload-form" method="post" enctype="multipart/form-data" action="{{ url_for('upload_file') }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="provider">Provider</label>
+                        <select id="provider" name="provider" required>
+                            <option value="">Select Provider</option>
+                            {% for p in providers %}
+                                <option value="{{ p }}">{{ p }}</option>
+                            {% endfor %}
+      </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="file">Choose File</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="file" name="file" required class="file-input">
+                            <div class="file-input-display">
+                                <span class="file-input-icon">📄</span>
+                                <span class="file-input-text">Click to select file</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Upload File
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Files by Provider -->
+    <div class="files-section">
+  {% for provider in providers %}
+        <div class="provider-files-card">
+            <div class="provider-files-header">
+                <div class="provider-files-title">
+                    <span class="provider-files-icon">🏢</span>
+                    {{ provider }}
+                </div>
+                <div class="files-count">{{ files_by_provider[provider]|length }} file{{ 's' if files_by_provider[provider]|length != 1 else '' }}</div>
+            </div>
+            
+            <div class="provider-files-body">
+                {% if files_by_provider[provider] %}
+                    <div class="files-grid">
+          {% for d in files_by_provider[provider] %}
+                        <div class="file-card">
+                            <div class="file-icon">
+                                <span class="file-type-icon">📄</span>
+                            </div>
+                            
+                            <div class="file-info">
+                                <div class="file-name">{{ d.filename }}</div>
+                                <div class="file-meta">
+                                    <span class="file-date">{{ d.uploaded_at }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="file-actions">
+                                <a href="{{ url_for('download_uploaded', provider=d.provider, stored_name=d.stored_name) }}" 
+                                   class="btn btn-success btn-sm">
+                                    <i class="fas fa-download"></i> Download
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+          {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📁</div>
+                        <div class="empty-state-title">No files uploaded</div>
+                        <div class="empty-state-subtitle">Upload your first file for {{ provider }}</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+          {% endfor %}
+    </div>
+</div>
+
+<style>
+/* Uploads Page Styles */
+.uploads-container {
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* Header Styles */
+.uploads-header {
+    margin-bottom: 30px;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.uploads-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.uploads-icon {
+    font-size: 2.2rem;
+    filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));
+}
+
+.uploads-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 400;
+}
+
+/* Upload Form Card */
+.upload-form-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+.upload-form-header {
+    padding: 24px 24px 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+}
+
+.upload-form-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.upload-form-icon {
+    font-size: 1.3rem;
+}
+
+.upload-form-body {
+    padding: 24px;
+}
+
+.upload-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+input, select {
+    padding: 12px 16px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+select option {
+    background: #1e293b;
+    color: #fff;
+}
+
+/* File Input Styling */
+.file-input-wrapper {
+    position: relative;
+    cursor: pointer;
+}
+
+.file-input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.file-input-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+    min-height: 48px;
+}
+
+.file-input-display:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.file-input-icon {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.file-input-text {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Button Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+}
+
+/* Files Section */
+.files-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.provider-files-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.provider-files-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 24px 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+}
+
+.provider-files-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.provider-files-icon {
+    font-size: 1.3rem;
+}
+
+.files-count {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.provider-files-body {
+    padding: 24px;
+}
+
+.files-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+/* File Card */
+.file-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.3s ease;
+}
+
+.file-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.file-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.file-type-icon {
+    font-size: 1.5rem;
+    color: white;
+}
+
+.file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+    word-break: break-word;
+}
+
+.file-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.file-date {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.file-actions {
+    flex-shrink: 0;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 8px;
+}
+
+.empty-state-subtitle {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .uploads-container {
+        padding: 16px;
+        width: 100%;
+    }
+    
+    .uploads-title {
+        font-size: 2rem;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .files-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .file-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+    
+    .file-info {
+        order: 2;
+    }
+    
+    .file-actions {
+        order: 3;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+// File input handling
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('file');
+    const fileDisplay = document.querySelector('.file-input-text');
+    
+    if (fileInput && fileDisplay) {
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                fileDisplay.textContent = file.name;
+                fileDisplay.style.color = '#3b82f6';
+            } else {
+                fileDisplay.textContent = 'Click to select file';
+                fileDisplay.style.color = 'rgba(255, 255, 255, 0.8)';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

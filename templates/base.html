@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Life360</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* safe, minimal header tweaks in case style.css doesn't have them */
+    header { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.75rem 1rem; }
+    header .brand { display:flex; align-items:center; gap:0.5rem; }
+    header .brand img { height:32px; display:block; object-fit:contain; }
+    nav.nav { display:flex; flex-wrap:wrap; gap:0.75rem; }
+    .auth { display:flex; align-items:center; gap:0.75rem; }
+    .chip { display:flex; align-items:center; gap:0.5rem; }
+    .chip .avatar { width:32px; height:32px; border-radius:50%; display:grid; place-items:center; background:#e6e6e6; font-weight:600; }
+    .chip .meta { line-height:1.1; }
+    .btn { text-decoration:none; padding:0.4rem 0.7rem; border-radius:6px; background:#111; color:#fff; }
+    .btn.small { padding:0.25rem 0.5rem; font-size:0.9rem; }
+    .btn.secondary { background:#eee; color:#111; }
+    .flash { padding:0 1rem; }
+    .flash-msg { margin:0.5rem 0; padding:0.6rem 0.8rem; border-radius:6px; }
+    .flash-msg.success { background:#e8fff1; }
+    .flash-msg.error { background:#ffe8e8; }
+    main { padding:1rem; }
+    footer { padding:1rem; }
+  
+  /* Global confirm modal */
+  #globalConfirmModal[hidden]{ display:none; }
+  #globalConfirmModal{ position:fixed; inset:0; z-index:9999; display:none; }
+  #globalConfirmModal .modal-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,0.45); }
+  #globalConfirmModal .modal{
+    position:relative; max-width:520px; width:92%; margin:10vh auto 0; background:var(--bg, #111827);
+    border:1px solid var(--border, #2a2a2a); border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  }
+  #globalConfirmModal .modal-actions{ margin-top:10px; display:flex; justify-content:flex-end; gap:8px; }
+</style>
+  <script>
+    function toggleDetails(id){ const el = document.getElementById(id); if(el){ el.hidden = !el.hidden; } }
+    function activateTab(groupId, tabName){
+      const root = document.getElementById(groupId);
+      if(!root) return;
+      root.querySelectorAll('[data-tab]').forEach(btn => {
+        btn.setAttribute('aria-selected', btn.getAttribute('data-tab') === tabName ? 'true' : 'false');
+      });
+      root.querySelectorAll('[data-panel]').forEach(p => { p.hidden = (p.getAttribute('data-panel') !== tabName); });
+    }
+    function toggleBlock(el){ el.classList.toggle('open'); }
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/actions.css') }}">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <a href="{{ url_for('dashboard') }}" aria-label="Life360 home">
+        <img src="{{ url_for('static', filename='img/life360-logo.jpg') }}" alt="Life360">
+      </a>
+    </div>
+
+    <nav class="nav">
+      <a href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('practitioners') }}">Practitioners</a>
+      <a href="{{ url_for('orders') }}">Orders</a>
+      <a href="{{ url_for('stock') }}">Stock</a>
+      <a href="{{ url_for('tasks_home') }}">Tasks</a>
+      <a href="{{ url_for('reports') }}">Reports</a>
+      <a href="{{ url_for('uploads_home') }}">Uploads</a>
+      <a href="{{ url_for('courier_bookings') }}" style="color: #f59e0b; font-weight: bold;">
+        📦 Courier
+      </a>
+      <a href="{{ url_for('ai_chat') }}" style="color: #007bff; font-weight: bold;">
+        Ask AI
+      </a>
+</nav>
+
+    <div class="auth">
+      {% if user %}
+        <div class="chip">
+          <div class="avatar">{{ (user.get('name') or user.get('preferred_username','?'))[:1] }}</div>
+          <div class="meta">
+            <div class="name">{{ user.get('name') or user.get('preferred_username') }}</div>
+            <div class="sub">{{ user.get('preferred_username') }}</div>
+          </div>
+        </div>
+        <a class="btn secondary" href="{{ url_for('logout') }}">Logout</a>
+      {% else %}
+        <a class="btn" href="{{ url_for('login') }}">Login</a>
+      {% endif %}
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash">
+        {% for category, message in messages %}
+          <div class="flash-msg {{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer><small class="muted"></small></footer>
+
+
+<!-- SMS Modal -->
+<div id="smsModal" hidden>
+  <div class="sms-backdrop" onclick="smsClose()"></div>
+  <div class="sms-card" role="dialog" aria-modal="true" aria-labelledby="smsTitle">
+    <h3 id="smsTitle" class="sms-title">Send SMS</h3>
+    <div class="sms-row">
+      <label>Mobile number
+        <input id="smsNumber" type="tel" placeholder="+2782..." />
+      </label>
+    </div>
+    <div class="sms-row">
+      <label>Message
+        <textarea id="smsMessage" rows="4" placeholder="Type your message..."></textarea>
+      </label>
+    </div>
+    <div class="sms-actions">
+      <button class="btn secondary" type="button" onclick="smsClose()">Cancel</button>
+      <button class="btn" type="button" onclick="smsSend()">Send</button>
+    </div>
+    <div id="smsFeedback" class="sms-feedback muted" aria-live="polite"></div>
+  </div>
+</div>
+
+<style>
+  /* Lightweight modal styles */
+  #smsModal[hidden]{ display:none; }
+  #smsModal{ position:fixed; inset:0; z-index:9999; }
+  #smsModal .sms-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,0.45); }
+  #smsModal .sms-card{
+    position:relative; max-width:520px; width:92%; margin:10vh auto 0; background:var(--bg, #111827);
+    border:1px solid var(--border, #2a2a2a); border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  }
+  #smsModal .sms-title{ margin:0 0 8px 0; }
+  #smsModal .sms-row{ margin:8px 0; }
+  #smsModal input, #smsModal textarea{ width:100%; }
+  #smsModal .sms-actions{ margin-top:10px; display:flex; justify-content:flex-end; gap:8px; }
+  #smsModal .sms-feedback{ margin-top:8px; font-size:12px; }
+  /* Right-aligned action cell helpers */
+  .action-col, td.expand-cell{ text-align:right; white-space:nowrap; }
+  .sms-btn{ padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:var(--bg-2,#1f2937); cursor:pointer; }
+  .sms-btn:hover{ filter:brightness(1.1); }
+  .chev-btn + .sms-btn, .sms-btn + .chev-btn{ margin-left:8px; }
+
+  /* Global confirm modal */
+  #globalConfirmModal[hidden]{ display:none; }
+  #globalConfirmModal{ position:fixed; inset:0; z-index:9999; display:none; }
+  #globalConfirmModal .modal-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,0.45); }
+  #globalConfirmModal .modal{
+    position:relative; max-width:520px; width:92%; margin:10vh auto 0; background:var(--bg, #111827);
+    border:1px solid var(--border, #2a2a2a); border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  }
+  #globalConfirmModal .modal-actions{ margin-top:10px; display:flex; justify-content:flex-end; gap:8px; }
+</style>
+
+<script>
+  // SMS modal logic
+  window.__sms_ctx = { name: "", phone: "" };
+  function openSMS(phoneDefault, name){
+    const modal = document.getElementById('smsModal');
+    const num = document.getElementById('smsNumber');
+    const msg = document.getElementById('smsMessage');
+    const fb  = document.getElementById('smsFeedback');
+    window.__sms_ctx = { name: name || "", phone: (phoneDefault||"").trim() };
+    num.value = window.__sms_ctx.phone;
+    msg.value = (name ? ('Hi ' + name + ', ') : '');
+    fb.textContent = '';
+    modal.hidden = false;
+    setTimeout(() => num.focus(), 0);
+  }
+  function smsClose(){
+    document.getElementById('smsModal').hidden = true;
+  }
+  async function smsSend(){
+    const num = document.getElementById('smsNumber').value.trim();
+    const msg = document.getElementById('smsMessage').value.trim();
+    const fb  = document.getElementById('smsFeedback');
+    if(!num || !msg){ fb.textContent = 'Please enter a number and message.'; return; }
+    fb.textContent = 'Sending…';
+    try{
+      const res = await fetch("{{ url_for('sms_send') }}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ destination: num, message: msg })
+      });
+      const data = await res.json().catch(()=>({}));
+      if(res.ok && data.ok){
+        fb.textContent = 'SMS queued successfully.';
+        setTimeout(smsClose, 700);
+      }else{
+        fb.textContent = 'Failed: ' + (data.error || JSON.stringify(data));
+      }
+    }catch(err){
+      fb.textContent = 'Error: ' + err;
+    }
+  }
+</script>
+
+
+</div>
+</div>
+<script>
+(function(){
+  const modal = document.getElementById('globalConfirmModal');
+  const text  = document.getElementById('globalConfirmText');
+  const title = document.getElementById('globalConfirmTitle');
+  const btnOk = document.getElementById('gcConfirm');
+  const btnNo = document.getElementById('gcCancel');
+  const backd = document.getElementById('gcBackdrop');
+  let pendingForm = null;
+
+  function open(form){
+    pendingForm = form;
+    const msg = form.getAttribute('data-confirm') || 'Are you sure?';
+    const lbl = form.getAttribute('data-confirm-label') || 'Delete';
+    const ttl = form.getAttribute('data-confirm-title') || 'Confirm action';
+    text.textContent = msg;
+    title.textContent = ttl;
+    btnOk.textContent = lbl;
+    modal.removeAttribute('hidden');
+    modal.style.display = 'block';
+  }
+  function close(){
+    modal.setAttribute('hidden', 'hidden');
+    modal.style.display = 'none';
+    pendingForm = null;
+  }
+  btnNo.addEventListener('click', close);
+  backd.addEventListener('click', close);
+  btnOk.addEventListener('click', function(){
+    if(pendingForm){ pendingForm.submit(); }
+    close();
+  });
+
+  document.addEventListener('submit', function(ev){
+    const f = ev.target;
+    if (f && f.classList && f.classList.contains('js-confirm-form') && f.dataset.confirmed !== '1') {
+      ev.preventDefault();
+      open(f);
+      return false;
+    }
+  }, true);
+})();
+</script>
+
+  <script defer src="{{ url_for('static', filename='js/confirm.js') }}"></script>
+  {% include '_confirm_modal.html' %}
+</body>
+</html>

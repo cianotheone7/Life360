@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h2>Delete “{{ item.name }}”</h2>
+    <div class="spacer"></div>
+  </div>
+  <p>This will permanently delete the stock item and all its unassigned barcodes.</p>
+  <ul>
+    <li><strong>Total barcodes:</strong> {{ total_units }}</li>
+    <li><strong>Barcodes assigned to orders:</strong> {{ assigned_units }}</li>
+  </ul>
+
+  {% if not can_delete %}
+    <div class="flash-msg error" role="alert">
+      Some barcodes are assigned to orders, so this item cannot be deleted.
+      <a class="btn secondary small" href="{{ url_for('stock') }}">Back to stock</a>
+    </div>
+  {% else %}
+    <form method="post" action="{{ url_for('delete_item', item_id=item.id) }}" class="mt-2">
+      <button class="btn small danger icon-left" type="submit">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 3h6a1 1 0 0 1 1 1v2h5v2h-1l-1.1 12.1A2 2 0 0 1 16.9 22H7.1a2 2 0 0 1-1.99-1.9L4 8H3V6h5V4a1 1 0 0 1 1-1Zm1 3h4V5h-4v1ZM6 8l1 12h10l1-12H6Zm4 3h2v7h-2v-7Zm4 0h2v7h-2v-7Z"/></svg>
+        Delete “{{ item.name }}”
+      </button>
+      <a class="btn small ghost" href="{{ url_for('stock') }}">Cancel</a>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

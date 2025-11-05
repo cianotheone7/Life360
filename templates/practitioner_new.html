@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+/* — Page-local tidy-ups (no color changes) — */
+.form-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px 18px;
+  max-width: 900px;
+}
+.form-grid .row{ display:flex; flex-direction:column; gap:6px }
+.form-grid label{ font-size:14px; color:var(--muted) }
+.form-grid .actions{ grid-column:1 / -1; margin-top:8px; display:flex; gap:10px }
+.page-wrap{ max-width: 1100px; margin: 0 auto; }
+.panel{ background:var(--panel); border:1px solid #1e2750; border-radius: var(--radius); padding: 20px; }
+.page-title{ margin: 0 0 12px; font-size: 28px; }
+</style>
+
+<div class="page-wrap">
+  <div class="panel">
+    <header class="page-header"><h1 class="page-title">Add Practitioner</h1></header>
+
+<form method="post" class="form-grid">
+  <div class="row">
+    <label>Provider</label>
+    <input type="text" name="provider" required>
+  </div>
+  <div class="row">
+    <label>Title</label>
+    <input type="text" name="title" placeholder="Dr / Mr / Ms">
+  </div>
+  <div class="row">
+    <label>First name</label>
+    <input type="text" name="first_name" required>
+  </div>
+  <div class="row">
+    <label>Last name</label>
+    <input type="text" name="last_name">
+  </div>
+  <div class="row">
+    <label>Email</label>
+    <input type="email" name="email">
+  </div>
+  <div class="row">
+    <label>Phone</label>
+    <input type="text" name="phone">
+  </div>
+  <div class="row">
+    <label>Notes</label>
+    <textarea name="notes" rows="4"></textarea>
+  </div>
+  <div class="actions">
+    <button class="btn" type="submit">Save</button>
+    <a class="btn secondary" href="{{ url_for('practitioners') }}">Cancel</a>
+  </div>
+</form>
+  </div>
+</div>
+
+
+<script>
+  function toggleRow(id, btn){
+    const row = document.getElementById(id);
+    const isHidden = row?.hasAttribute('hidden');
+    if (!row) return;
+    if (isHidden) { row.removeAttribute('hidden'); } else { row.setAttribute('hidden',''); }
+    if (btn) { btn.setAttribute('aria-expanded', String(isHidden)); }
+  }
+
+  // Toggle EDIT mode for a practitioner detail card
+  function editToggle(btn, toEdit){
+  const card = btn && (btn.closest('.detail-card') || btn.closest('td') || btn.closest('tr')) || document;
+  const view = card ? card.querySelector('.cols') : null;
+  const edit = card ? card.querySelector('.edit-mode') : null;
+  const editBtn = card ? card.querySelector('.edit-actions button:nth-child(1)') : null;
+  const cancelBtn = card ? card.querySelector('.edit-actions button:nth-child(2)') : null;
+  if (!view || !edit) return;
+
+  if (toEdit){
+    view.hidden = true;
+    edit.hidden = false;
+    if (editBtn) editBtn.hidden = true;
+    if (cancelBtn) cancelBtn.hidden = false;
+    card.classList.add('is-editing');
+  } else {
+    view.hidden = false;
+    edit.hidden = true;
+    if (editBtn) editBtn.hidden = false;
+    if (cancelBtn) cancelBtn.hidden = true;
+    card.classList.remove('is-editing');
+  }
+}
+
+// Add robust click handlers in case inline onclick isn't present
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const label = (btn.getAttribute('aria-label') || btn.getAttribute('title') || btn.textContent || '').trim().toLowerCase();
+  if (btn.matches('[data-action="edit"], .edit-btn, [data-edit]') || label === 'edit'){
+    editToggle(btn, true);
+  } else if (btn.matches('[data-action="cancel"], .cancel-btn, [data-cancel]') || label === 'cancel'){
+    editToggle(btn, false);
+  }
+});
+
+  // Make each provider header collapse/expand the rows until the next provider header
+  function enhanceProviderCollapsibles(){
+  document.querySelectorAll('.tab-panel').forEach((panel) => {
+    const headers = panel.querySelectorAll('.provider-badge');
+    headers.forEach((h) => {
+      if (h.dataset.enhanced === '1') return;
+
+      h.setAttribute('role','button');
+      h.setAttribute('tabindex','0');
+
+      // Group following siblings up to the next provider header
+      const body = document.createElement('div');
+      body.className = 'provider-body';
+      let sib = h.nextElementSibling;
+      while (sib && !sib.classList.contains('provider-badge')){
+        const next = sib.nextElementSibling;
+        body.appendChild(sib);
+        sib = next;
+      }
+      h.after(body);
+
+      // Default: collapsed unless explicitly marked data-expanded
+      const defaultOpen = h.hasAttribute('data-expanded');
+      h.setAttribute('aria-expanded', defaultOpen ? 'true' : 'false');
+      if (!defaultOpen) body.hidden = true;
+
+      const toggle = () => {
+        const expanded = h.getAttribute('aria-expanded') === 'true';
+        h.setAttribute('aria-expanded', String(!expanded));
+        body.hidden = expanded;
+      };
+      h.addEventListener('click', toggle);
+      h.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+
+      h.dataset.enhanced = '1';
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', enhanceProviderCollapsibles);
+
+  document.addEventListener('DOMContentLoaded', enhanceProviderCollapsibles);
+</script>
+
+{% endblock %}

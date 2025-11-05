@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h2>Add Stock Item</h2>
+  <form class="form" method="post" action="{{ url_for('create_item') }}">
+    <label>Name <input name="name" type="text" required></label>
+    <label>Expiry Date <input name="expiry_date" type="date"></label>
+    <label>Received Date <input name="received_date" type="date"></label>
+    <label>Code Type
+      <select name="code_type">
+        <option value="Kit">Kit Code</option>
+        <option value="Swab">Swab Code</option>
+        <option value="Device">Device</option>
+              <option value="Supplement">Supplements</option>
+        <option value="Other">Other</option>
+      </select>
+    </label>
+    <label>Batch Number <input name="person_requested" type="text"></label>
+    <label>Requested Date &amp; Time <input name="request_datetime" type="datetime-local"></label>
+    <label>Current Stock <input name="current_stock" type="number" value="0" min="0"></label>
+    <label>Provider
+      <select name="provider">
+        {% for p in ['Healthy Me','Sam Wearables','Geneway','Optiway','Enbiosis','Intelligene','Umvuzo Fedhealth','Umvuzo Intelligene','Geko'] %}
+          <option>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="actions"><button class="btn" type="submit">Add</button></div>
+  </form>
+</section>
+{% endblock %}

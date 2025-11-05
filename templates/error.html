@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="error-container">
+  <div class="error-content">
+    <div class="error-icon">
+      {% if error_code == 404 %}
+        <svg viewBox="0 0 24 24" fill="currentColor" width="64" height="64">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+        </svg>
+      {% elif error_code == 403 %}
+        <svg viewBox="0 0 24 24" fill="currentColor" width="64" height="64">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+        </svg>
+      {% elif error_code == 500 %}
+        <svg viewBox="0 0 24 24" fill="currentColor" width="64" height="64">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+        </svg>
+      {% else %}
+        <svg viewBox="0 0 24 24" fill="currentColor" width="64" height="64">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+        </svg>
+      {% endif %}
+    </div>
+    
+    <h1 class="error-title">{{ error_code }}</h1>
+    <h2 class="error-message">{{ error_message }}</h2>
+    
+    {% if error_details and error_details != "None" %}
+      <div class="error-details">
+        <details>
+          <summary>Technical Details</summary>
+          <pre>{{ error_details }}</pre>
+        </details>
+      </div>
+    {% endif %}
+    
+    <div class="error-actions">
+      <a href="{{ url_for('dashboard') }}" class="btn">Go to Dashboard</a>
+      <a href="javascript:history.back()" class="btn secondary">Go Back</a>
+    </div>
+    
+    {% if error_code == 404 %}
+      <div class="error-help">
+        <h3>What you can do:</h3>
+        <ul>
+          <li>Check the URL for typos</li>
+          <li>Use the navigation menu to find what you're looking for</li>
+          <li>Go back to the <a href="{{ url_for('dashboard') }}">dashboard</a></li>
+        </ul>
+      </div>
+    {% elif error_code == 403 %}
+      <div class="error-help">
+        <h3>Access Denied</h3>
+        <p>You don't have permission to access this resource. Please contact your administrator if you believe this is an error.</p>
+      </div>
+    {% elif error_code == 500 %}
+      <div class="error-help">
+        <h3>Something went wrong</h3>
+        <p>We're experiencing technical difficulties. Please try again later or contact support if the problem persists.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.error-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 2rem;
+}
+
+.error-content {
+  text-align: center;
+  max-width: 600px;
+  width: 100%;
+}
+
+.error-icon {
+  margin-bottom: 2rem;
+  opacity: 0.6;
+}
+
+.error-title {
+  font-size: 4rem;
+  font-weight: 800;
+  margin: 0 0 1rem 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.error-message {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 2rem 0;
+  color: var(--text);
+}
+
+.error-details {
+  margin: 2rem 0;
+  text-align: left;
+}
+
+.error-details details {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.error-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.error-details pre {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+}
+
+.error-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+}
+
+.error-help {
+  margin-top: 3rem;
+  padding: 2rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: left;
+}
+
+.error-help h3 {
+  margin: 0 0 1rem 0;
+  color: var(--accent);
+}
+
+.error-help ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.error-help li {
+  margin-bottom: 0.5rem;
+}
+
+.error-help a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.error-help a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .error-title {
+    font-size: 3rem;
+  }
+  
+  .error-message {
+    font-size: 1.25rem;
+  }
+  
+  .error-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .error-actions .btn {
+    width: 200px;
+  }
+}
+</style>
+{% endblock %}
+
+
+
+
+
+
+
+

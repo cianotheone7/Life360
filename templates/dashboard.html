@@ -1,0 +1,547 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- KPI TILES (use your existing CSS) -->
+<section class="panel">
+  <div class="panel-head">
+    <h2>Dashboard</h2>
+  </div>
+  <div class="stats color">
+    <a href="{{ url_for('practitioners') }}" class="stat accent clickable-stat">
+      <div class="num">{{ total_prac }}</div>
+      <div class="label">Practitioners</div>
+    </a>
+    <a href="{{ url_for('practitioners') }}?filter=onboarded" class="stat success clickable-stat">
+      <div class="num">{{ onboarded }}</div>
+      <div class="label">Onboarded</div>
+    </a>
+    <a href="{{ url_for('practitioners') }}?filter=pending" class="stat warning clickable-stat">
+      <div class="num">{{ pending_prac }}</div>
+      <div class="label">Pending Onboarding</div>
+    </a>
+    <a href="{{ url_for('orders') }}" class="stat accent2 clickable-stat">
+      <div class="num">{{ total_orders }}</div>
+      <div class="label">Orders</div>
+    </a>
+    <a href="{{ url_for('orders') }}?filter=completed" class="stat success2 clickable-stat">
+      <div class="num">{{ completed_orders }}</div>
+      <div class="label">Completed Orders</div>
+    </a>
+    <a href="{{ url_for('orders') }}?filter=pending" class="stat danger clickable-stat">
+      <div class="num">{{ pending_orders }}</div>
+      <div class="label">Pending Orders</div>
+    </a>
+    <!-- Optional: expose if you want donut "Cancelled" to auto-match a tile gradient -->
+    <div class="stat danger2" style="display:none;">
+      <div class="num">0</div>
+      <div class="label">Cancelled Orders</div>
+    </div>
+  </div>
+</section>
+
+<!-- Ask AI -->
+<section class="panel" id="ask-ai" style="margin-top:16px;">
+  <div class="panel-head" style="display:flex; justify-content:center;">
+    <h3 class="ask-ai-title" style="margin:0; text-align:center; width:100%; font-size:1.8rem; line-height:1.25;">
+      Ask AI
+    </h3>
+  </div>
+
+  <div class="ai-row">
+    <input id="ai-input" class="ai-input" type="text"
+           placeholder="Ask me anything about your data..." />
+    <button id="ai-ask" class="btn" type="button">
+      <i class="fas fa-paper-plane"></i> Ask
+    </button>
+  </div>
+  
+  <!-- AI Response Area -->
+  <div id="ai-answer" class="ai-response" style="margin-top:12px; display:none;">
+    <div class="ai-response-header">
+      <div class="ai-avatar">
+        <i class="fas fa-robot"></i>
+      </div>
+      <div class="ai-response-content">
+        <div class="ai-response-text" id="ai-response-text"></div>
+        <div class="ai-response-time" id="ai-response-time"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Ask-AI Enhanced Styles */
+  #ask-ai .ai-row { display:grid; grid-template-columns:1fr auto; gap:14px; align-items:center; width:100%; }
+  #ask-ai .ai-input{
+    padding:14px 18px; width:100%; color:inherit; outline:none;
+    border-radius:9999px; border:1px solid rgba(255,255,255,.08);
+    background:linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    transition: all 0.3s ease;
+  }
+  #ask-ai .ai-input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  }
+  #ask-ai .ai-input::placeholder { color:rgba(255,255,255,.4); }
+  #ask-ai .btn { padding:14px 20px; border-radius:9999px; font-weight:600; }
+  
+  .ai-response {
+    background: linear-gradient(135deg, rgba(0, 123, 255, 0.1), rgba(0, 123, 255, 0.05));
+    border: 1px solid rgba(0, 123, 255, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    backdrop-filter: blur(10px);
+  }
+  
+  .ai-response-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .ai-avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  
+  .ai-response-content {
+    flex: 1;
+  }
+  
+  .ai-response-text {
+    color: #ffffff;
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+  
+  .ai-response-time {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+  }
+  
+  /* Loading Animation */
+  .ai-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255,255,255,0.7);
+  }
+  
+  .ai-loading::after {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Button Enhancements */
+  .btn {
+    transition: all 0.2s ease;
+  }
+  
+  .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  
+  .btn-outline-primary {
+    background: transparent;
+    border: 1px solid #007bff;
+    color: #007bff;
+  }
+  
+  .btn-outline-primary:hover {
+    background: #007bff;
+    color: white;
+  }
+
+  /* Charts layout */
+  #dash-charts .chart-grid{
+    display:grid; gap:14px; margin-top:12px;
+    grid-template-columns: repeat(12, minmax(0,1fr));
+  }
+  #dash-charts .card{
+    background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06);
+    border-radius:12px; padding:12px;
+  }
+  #dash-charts .card-head{ font-weight:600; margin-bottom:8px; opacity:.9; }
+
+  /* Columns */
+  #cardStatus{ grid-column: span 4; }
+  #cardProvider{ grid-column: span 4; }
+  #cardTimeline{ grid-column: span 4; }
+
+  /* BIGGER donut: more space + thicker ring handled in JS */
+  #chartStatus { 
+    display:block; 
+    margin: 0 auto; 
+    max-width: 480px;   /* was 420px */
+    height: 320px !important; /* was 240px */
+  }
+  #dash-charts .card canvas { width:100% !important; }
+
+  /* Table */
+  #dash-charts .table{ width:100%; border-collapse:collapse; }
+  #dash-charts .table th, #dash-charts .table td{
+    border-bottom:1px solid rgba(255,255,255,.08); padding:8px; text-align:left; font-size:.95rem;
+  }
+  #dash-charts .table thead th{ opacity:.8; font-weight:600; }
+
+  @media (max-width:1100px){
+    #cardStatus, #cardProvider, #cardTimeline { grid-column: span 12; }
+  }
+</style>
+
+<!-- DASHBOARD CHARTS -->
+<section class="panel" id="dash-charts" style="margin-top:16px;">
+  <div class="panel-head"><h3 style="margin:0;">Overview</h3></div>
+
+  <div class="chart-grid">
+    <div class="card" id="cardStatus">
+      <div class="card-head">Orders by Status</div>
+      <canvas id="chartStatus"></canvas>
+    </div>
+
+    <div class="card" id="cardProvider">
+      <div class="card-head">Orders by Provider</div>
+      <canvas id="chartProvider" height="220"></canvas>
+    </div>
+
+    <div class="card" id="cardTimeline">
+      <div class="card-head">This Month: Created vs Completed</div>
+      <canvas id="chartTimeline" height="220"></canvas>
+    </div>
+
+    <div class="card table-card" style="grid-column: 1 / -1;">
+      <div class="card-head">Recent Orders</div>
+      <table class="table">
+        <thead>
+          <tr><th>ID</th><th>Patient</th><th>Provider</th><th>Status</th><th>Items</th></tr>
+        </thead>
+        <tbody id="recentOrdersBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Dummy Data (only if 'orders' is empty) -->
+<script>
+  let ORDERS_DATA = {{ (orders | default([])) | tojson | safe }};
+  if (!Array.isArray(ORDERS_DATA) || ORDERS_DATA.length === 0) {
+    const today = new Date().toISOString().slice(0,10);
+    ORDERS_DATA = [
+      {id:101, name:"Alice", surname:"Smith", provider:"Geneway",     status:"Pending",   created_at: today},
+      {id:102, name:"Bob",   surname:"Jones", provider:"Geneway",     status:"Completed", created_at:"2025-08-02", completed_at:"2025-08-05"},
+      {id:103, name:"Carol", surname:"Brown", provider:"Intelligene",        status:"Completed", created_at:"2025-08-06", completed_at:"2025-08-10"},
+      {id:104, name:"David", surname:"White", provider:"Optiway",     status:"Pending",   created_at:"2025-08-16"},
+      {id:105, name:"Eve",   surname:"Green", provider:"Reboot",      status:"Cancelled", created_at:"2025-08-20"},
+      {id:106, name:"Frank", surname:"Black", provider:"Intelligene", status:"Pending",   created_at:"2025-08-24"}
+    ];
+  }
+</script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<!-- CHART BUILDER (reads KPI gradients for “AI look”) -->
+<script>
+(function(){
+  const orders = ORDERS_DATA;
+
+  // ---------- helpers ----------
+  const by = (arr, keyFn) => arr.reduce((m,o)=>{ const k=keyFn(o)||'—'; m[k]=(m[k]||0)+1; return m; }, {});
+  const itemsCount = o => (o.items||[]).reduce((a,it)=>a+(+it.qty||0),0);
+  const normStatus = s => {
+    const t = (s||'').toLowerCase();
+    if (t.includes('pend')) return 'Pending';
+    if (t.includes('compl')) return 'Completed';
+    if (t.includes('canc')) return 'Cancelled';
+    return 'Pending';
+  };
+
+  // ---------- read gradient/colors from KPI tiles ----------
+  function getKpiBackground(labelContains){
+    const tiles = document.querySelectorAll('.stats.color .stat');
+    for (const t of tiles) {
+      const label = (t.querySelector('.label')?.textContent || '').trim().toLowerCase();
+      if (label.includes(labelContains.toLowerCase())) {
+        const cs = getComputedStyle(t);
+        return {
+          bg: cs.backgroundColor,      // solid color if any
+          img: cs.backgroundImage || ""// gradient(...) if present
+        };
+      }
+    }
+    return {bg:null, img:""};
+  }
+
+  function extractGradientStops(bgObj){
+    // Return array of color strings from gradient; fall back to solid bg.
+    const {bg, img} = bgObj;
+    const colors = [];
+    if (img && img.includes('gradient')) {
+      // grab up to 4 colors from the gradient string
+      const rgbs = img.match(/rgba?\([^)]+\)/g) || [];
+      const hexs = img.match(/#([0-9a-fA-F]{3,8})/g) || [];
+      (rgbs.length?rgbs:hexs).slice(0,4).forEach(c=>colors.push(c));
+    }
+    if (!colors.length && bg && bg !== 'rgba(0, 0, 0, 0)') colors.push(bg);
+    if (!colors.length) colors.push('#9aa0a6'); // safe fallback
+    return colors;
+  }
+
+  function makeLinearGradient(ctx, colors, vertical=true){
+    const {width, height} = ctx.canvas;
+    const g = ctx.createLinearGradient(0, 0, vertical ? 0 : width, vertical ? height : 0);
+    const step = 1 / Math.max(1, colors.length - 1);
+    colors.forEach((c,i)=>g.addColorStop(i*step, c));
+    return g;
+  }
+
+  // KPI → colors/gradients
+  const pendingStops   = extractGradientStops(getKpiBackground('pending orders'));
+  const completedStops = extractGradientStops(getKpiBackground('completed orders'));
+  const cancelledStops = extractGradientStops(getKpiBackground('cancelled')); // will be fallback if no tile
+
+  // ---------- aggregates ----------
+  const countsByStatus = by(orders, o => normStatus(o.status));
+  const pendingCount   = countsByStatus['Pending']   || 0;
+  const completedCount = countsByStatus['Completed'] || 0;
+  const cancelledCount = countsByStatus['Cancelled'] || 0;
+
+  const providerCounts = Object.entries(by(orders, o => o.provider || '—')).sort((a,b)=>b[1]-a[1]);
+  const provLabels = providerCounts.map(([k])=>k);
+  const provValues = providerCounts.map(([,v])=>v);
+
+  // last 30 days series
+  const end   = new Date();
+  const start = new Date(); start.setDate(end.getDate()-29);
+  const labels = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) labels.push(d.toISOString().slice(5,10));
+  const bucketIndex = dt => { const d=new Date(dt); if(isNaN(d)) return -1; const k=Math.floor((d-start)/86400000); return (k>=0 && k<labels.length)?k:-1; };
+  const perDay = getter => { const arr=Array(labels.length).fill(0); orders.forEach(o=>{ const i=bucketIndex(getter(o)); if(i>=0) arr[i]++; }); return arr; };
+  const createdSeries   = perDay(o => o.created_at || o.updated_at);
+  const completedSeries = perDay(o => o.completed_at);
+
+  // chart defaults
+  const gridColor = 'rgba(255,255,255,.06)';
+  const tickColor = 'rgba(255,255,255,.75)';
+  Chart.defaults.color = tickColor;
+  Chart.defaults.font.family = "system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans'";
+
+  // ---------- DONUT (bigger + thicker ring, gradient segments) ----------
+  const donutCtx = document.getElementById('chartStatus').getContext('2d');
+  const gPending   = makeLinearGradient(donutCtx, pendingStops,  true);
+  const gCompleted = makeLinearGradient(donutCtx, completedStops,true);
+  const gCancelled = makeLinearGradient(donutCtx, cancelledStops,true);
+
+  new Chart(donutCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Pending','Completed','Cancelled'],
+      datasets: [{
+        data: [pendingCount, completedCount, cancelledCount],
+        backgroundColor: [gPending, gCompleted, gCancelled],
+        borderWidth: 2,
+        borderColor: '#0f172a'
+      }]
+    },
+    options: {
+      cutout: '65%',  // thicker ring for a bigger-looking donut
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position:'bottom', labels:{ boxWidth:14, boxHeight:14, usePointStyle:true, pointStyle:'circle' } },
+        tooltip:{ backgroundColor:'rgba(15,23,42,.95)' }
+      }
+    }
+  });
+
+  // ---------- PROVIDER BAR (gradient fill) ----------
+  const barCtx = document.getElementById('chartProvider').getContext('2d');
+  const gBar = makeLinearGradient(barCtx, completedStops, true);
+  new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels: provLabels,
+      datasets: [{
+        label:'Orders',
+        data: provValues,
+        backgroundColor: gBar,
+        borderColor: completedStops[0],
+        borderWidth: 1,
+        borderRadius: 8,
+        maxBarThickness: 42
+      }]
+    },
+    options: {
+      scales: {
+        x: { grid:{ display:false }, ticks:{ color: tickColor } },
+        y: { beginAtZero:true, grid:{ color: gridColor }, ticks:{ color: tickColor, precision:0 } }
+      },
+      plugins: { legend:{ display:false }, tooltip:{ backgroundColor:'rgba(15,23,42,.95)' } }
+    }
+  });
+
+  // ---------- TIMELINE LINE (gradient strokes & subtle areas) ----------
+  const lineCtx = document.getElementById('chartTimeline').getContext('2d');
+  const gPendingStroke   = makeLinearGradient(lineCtx, pendingStops,   false);
+  const gCompletedStroke = makeLinearGradient(lineCtx, completedStops, false);
+  const gPendingFill     = makeLinearGradient(lineCtx, pendingStops,   true);
+  const gCompletedFill   = makeLinearGradient(lineCtx, completedStops, true);
+
+  new Chart(lineCtx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label:'Created',   data: createdSeries,   borderColor: gPendingStroke,   backgroundColor: gPendingFill,   fill:true, tension:.35, pointRadius:0 },
+        { label:'Completed', data: completedSeries, borderColor: gCompletedStroke, backgroundColor: gCompletedFill, fill:true, tension:.35, pointRadius:0 }
+      ]
+    },
+    options: {
+      interaction:{ mode:'index', intersect:false },
+      scales: {
+        x: { grid:{ color: gridColor }, ticks:{ color: tickColor, maxRotation:0, autoSkip:true } },
+        y: { beginAtZero:true, grid:{ color: gridColor }, ticks:{ color: tickColor, precision:0 } }
+      },
+      plugins: {
+        legend:{ labels:{ boxWidth:14, boxHeight:14, usePointStyle:true, pointStyle:'line' } },
+        tooltip:{ backgroundColor:'rgba(15,23,42,.95)' }
+      }
+    }
+  });
+
+  // ---------- RECENT ORDERS TABLE ----------
+  const tbody = document.getElementById('recentOrdersBody');
+  const rows = [...orders].sort((a,b)=>{
+    const ad = new Date(a.completed_at || a.updated_at || a.created_at || 0).getTime();
+    const bd = new Date(b.completed_at || b.updated_at || b.created_at || 0).getTime();
+    return bd - ad;
+  }).slice(0,12);
+  tbody.innerHTML = rows.map(o=>{
+    const name = [o.name,o.surname].filter(Boolean).join(' ') || '—';
+    const items = (o.items||[]).reduce((a,it)=>a+(+it.qty||0),0);
+    return `<tr>
+      <td>#${o.id ?? '—'}</td>
+      <td>${name}</td>
+      <td>${o.provider || '—'}</td>
+      <td>${o.status || (o.sent_out ? 'Completed' : 'Pending')}</td>
+      <td>${items}</td>
+    </tr>`;
+  }).join('');
+})();
+</script>
+
+<script>
+(function(){
+  const btn = document.getElementById('ai-ask');
+  const input = document.getElementById('ai-input');
+  const answerDiv = document.getElementById('ai-answer');
+  const responseText = document.getElementById('ai-response-text');
+  const responseTime = document.getElementById('ai-response-time');
+  
+  if(!btn || !input || !answerDiv) return;
+  
+  // Enhanced AI functionality with better error handling
+  btn.addEventListener('click', async ()=>{
+    const prompt = (input.value || '').trim();
+    if(!prompt){ 
+      showResponse('Please enter a question...', true);
+      return; 
+    }
+    
+    showLoading();
+    
+    try{
+      const r = await fetch('/api/ask_ai', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+      const j = await r.json();
+      
+      if(j.ok && j.answer) {
+        showResponse(formatResponse(j.answer), false);
+      } else {
+        // Handle specific error types
+        let errorMessage = j.error || 'No answer received.';
+        
+        if (errorMessage.includes('429')) {
+          errorMessage = 'AI service is temporarily busy. Please wait a moment and try again.';
+        } else if (errorMessage.includes('OpenRouter')) {
+          errorMessage = 'AI service is currently unavailable. Please try again later.';
+        } else if (errorMessage.includes('API key')) {
+          errorMessage = 'AI service configuration issue. Please contact support.';
+        }
+        
+        showResponse(errorMessage, true);
+      }
+    }catch(e){
+      showResponse('Network error: ' + e.message, true);
+    }
+  });
+  
+  // Enter key support
+  input.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      btn.click();
+    }
+  });
+  
+  function showLoading() {
+    answerDiv.style.display = 'block';
+    responseText.innerHTML = '<span class="ai-loading">Thinking</span>';
+    responseTime.textContent = '';
+  }
+  
+  function showResponse(text, isError) {
+    answerDiv.style.display = 'block';
+    responseText.innerHTML = text;
+    responseTime.textContent = new Date().toLocaleTimeString();
+    
+    if (isError) {
+      answerDiv.style.borderColor = 'rgba(220, 53, 69, 0.3)';
+      answerDiv.style.background = 'linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05))';
+    } else {
+      answerDiv.style.borderColor = 'rgba(255,255,255,.1)';
+      answerDiv.style.background = 'linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02))';
+    }
+  }
+  
+  function formatResponse(text) {
+    // Basic formatting for better readability
+    return text
+      .replace(/\n/g, '<br>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/(\d+)\s*(units?|orders?|practitioners?)/gi, '<span style="color: #007bff; font-weight: 600;">$1 $2</span>')
+      .replace(/(✅|❌|⚠️)/g, '<span style="font-size: 1.2em;">$1</span>');
+  }
+  
+})();
+</script>
+
+{% endblock %}

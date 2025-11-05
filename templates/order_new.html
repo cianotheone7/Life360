@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.form-grid label{display:flex;flex-direction:column;gap:6px}
+.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+.help{opacity:.8;font-size:.9rem;margin-top:6px}
+.stock-item-select{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:inherit}
+</style>
+
+<section class="panel" id="new-order-page" style="margin-bottom:16px;">
+  <div class="panel-head"><h3>Create New Order</h3></div>
+  <form id="new-order-form" method="post" action="{{ url_for('create_order') }}">
+    <div class="form-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px;">
+      <label>Provider
+        <select name="provider">
+          {% for p in providers or ['Geneway','Optiway','Enbiosis','Intelligene','Healthy Me','Intelligene Fedhealth','Geko'] %}
+            <option value="{{ p }}">{{ p }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Customer First Name <input type="text" name="name" placeholder="e.g. Thandi"/></label>
+      <label>Customer Surname <input type="text" name="surname" placeholder="e.g. Mkhize"/></label>
+      <label>Practitioner Name <input type="text" name="practitioner_name" placeholder="Optional"/></label>
+      <label>Ordered At <input type="datetime-local" name="ordered_at" value="{{ (datetime.utcnow().strftime('%Y-%m-%dT%H:%M')) if datetime else '' }}"></label>
+      <label>Status
+        <select name="status">
+          <option>Pending</option>
+          <option>Completed</option>
+          <option>Cancelled</option>
+        </select>
+      </label>
+      <label>Opt-In Status
+        <select name="opt_in_status">
+          <option value="">Pending</option>
+          <option value="Opted In">Opted In</option>
+          <option value="Opted Out">Opted Out</option>
+        </select>
+      </label>
+    </div>
+    <div class="form-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-top:8px;">
+      <label>Stock Item 1
+        <select name="stock_item_1" class="stock-item-select" required>
+          <option value="">-- Select Stock Item --</option>
+          {% if stock_items %}
+            {% for item in stock_items %}
+              <option value="{{ item.id }}">{{ item.name }} ({{ item.provider }}) - {{ item.available }} available</option>
+            {% endfor %}
+          {% else %}
+            <option value="" disabled>No stock items available</option>
+          {% endif %}
+        </select>
+      </label>
+      <label>Qty 1 <input name="item_qty_1" type="number" min="1" value="1"/></label>
+      <label>Stock Item 2
+        <select name="stock_item_2" class="stock-item-select">
+          <option value="">-- Select Stock Item --</option>
+          {% if stock_items %}
+            {% for item in stock_items %}
+              <option value="{{ item.id }}">{{ item.name }} ({{ item.provider }}) - {{ item.available }} available</option>
+            {% endfor %}
+          {% endif %}
+        </select>
+      </label>
+      <label>Qty 2 <input name="item_qty_2" type="number" min="1" value="1"/></label>
+      <label>Stock Item 3
+        <select name="stock_item_3" class="stock-item-select">
+          <option value="">-- Select Stock Item --</option>
+          {% if stock_items %}
+            {% for item in stock_items %}
+              <option value="{{ item.id }}">{{ item.name }} ({{ item.provider }}) - {{ item.available }} available</option>
+            {% endfor %}
+          {% endif %}
+        </select>
+      </label>
+      <label>Qty 3 <input name="item_qty_3" type="number" min="1" value="1"/></label>
+    </div>
+    <label style="display:block; margin-top:10px;">Notes
+      <textarea name="notes" rows="3" style="width:100%"></textarea>
+    </label>
+    <div style="margin-top:10px;"><button class="btn" type="submit">Add Order</button></div>
+  <div class="help">Tip: Select stock items and quantities. Available barcodes will be automatically assigned.</div>
+<div class="form-actions"><a class="btn" href="{{ url_for('orders') }}">Cancel</a><button class="btn" type="submit">Create Order</button></div>
+</form>
+</section>
+{% endblock %}

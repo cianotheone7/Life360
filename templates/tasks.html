@@ -1,0 +1,756 @@
+{% extends "base.html" %}
+
+{% block title %}Team Tasks - Life360 Dashboard{% endblock %}
+
+{% block content %}
+<div class="tasks-container">
+    <!-- Header -->
+    <div class="tasks-header">
+        <div class="tasks-header-content">
+            <h1 class="tasks-title">
+                <span class="tasks-icon">📋</span>
+                Team Tasks
+            </h1>
+            <p class="tasks-subtitle">Manage and track team tasks across all providers</p>
+        </div>
+    </div>
+
+    <!-- Add Task Card -->
+    <div class="add-task-card">
+        <div class="add-task-header">
+            <div class="add-task-title">
+                <span class="add-task-icon">➕</span>
+                Add New Task
+            </div>
+  </div>
+
+        <div class="add-task-body">
+            <form class="add-task-form" method="post" action="{{ url_for('tasks_add') }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="title">Task Title</label>
+                        <input type="text" id="title" name="title" required placeholder="e.g., Train new practitioner on Geneway">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="provider">Provider</label>
+                        <select id="provider" name="provider">
+                            <option value="">Select Provider</option>
+                            <option value="Geneway">Geneway</option>
+                            <option value="Optiway">Optiway</option>
+                            <option value="Enbiosis">Enbiosis</option>
+                            <option value="Intelligene">Intelligene</option>
+                            <option value="Healthy Me">Healthy Me</option>
+                            <option value="Sam Wearables">Sam Wearables</option>
+                            <option value="Umvuzo Fedhealth">Umvuzo Fedhealth</option>
+                            <option value="Umvuzo Intelligene">Umvuzo Intelligene</option>
+      </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="assignee">Assignee</label>
+                        <input type="text" id="assignee" name="assignee" placeholder="e.g., Liza Verster">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="assigned_to">Assigned To</label>
+                        <input type="text" id="assigned_to" name="assigned_to" placeholder="e.g., Andrea">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="due_date">Due Date</label>
+                        <input type="date" id="due_date" name="due_date">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" name="status">
+                            <option value="Open">Open</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Done">Done</option>
+      </select>
+                    </div>
+                </div>
+                
+                <div class="form-group full-width">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" rows="3" placeholder="Add any additional notes or details..."></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Task
+                    </button>
+                </div>
+  </form>
+        </div>
+    </div>
+
+    <!-- Tasks List -->
+    <div class="tasks-list-card">
+        <div class="tasks-list-header">
+            <div class="tasks-list-title">
+                <span class="tasks-list-icon">📝</span>
+                Current Tasks
+            </div>
+            <div class="tasks-count">{{ tasks|length }} task{{ 's' if tasks|length != 1 else '' }}</div>
+        </div>
+        
+        <div class="tasks-list-body">
+            {% if tasks %}
+                <div class="tasks-grid">
+        {% for t in tasks %}
+                    <div class="task-card" onclick="toggleTaskDetails('task{{ t.id }}')">
+                        <div class="task-header">
+                            <div class="task-title">{{ t.title }}</div>
+                            <div class="task-status task-status-{{ t.status|lower|replace(' ', '-') }}">
+                                {{ t.status }}
+                            </div>
+                        </div>
+                        
+                        <div class="task-details">
+                            <div class="task-info">
+                                <div class="task-info-item">
+                                    <span class="task-info-label">Provider:</span>
+                                    <span class="task-info-value">{{ t.provider or 'Not specified' }}</span>
+                                </div>
+                                <div class="task-info-item">
+                                    <span class="task-info-label">Assignee:</span>
+                                    <span class="task-info-value">{{ t.assignee or 'Not assigned' }}</span>
+                                </div>
+                                <div class="task-info-item">
+                                    <span class="task-info-label">Assigned To:</span>
+                                    <span class="task-info-value">{{ t.assigned_to or 'Not specified' }}</span>
+                                </div>
+                                <div class="task-info-item">
+                                    <span class="task-info-label">Due Date:</span>
+                                    <span class="task-info-value">{{ t.due_date or 'No due date' }}</span>
+                                </div>
+                            </div>
+                            
+                            {% if t.notes %}
+                            <div class="task-notes">
+                                <span class="task-notes-label">Notes:</span>
+                                <span class="task-notes-value">{{ t.notes }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="task-actions">
+                            <button class="task-action-btn" onclick="event.stopPropagation(); toggleTaskDetails('task{{ t.id }}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Task Edit Form -->
+                    <div id="task{{ t.id }}" class="task-edit-form" hidden>
+                        <div class="task-edit-card">
+                            <div class="task-edit-header">
+                                <div class="task-edit-title">
+                                    <span class="task-edit-icon">✏️</span>
+                                    Edit Task
+                                </div>
+                                <button class="task-edit-close" onclick="toggleTaskDetails('task{{ t.id }}')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="task-edit-body">
+                                <form method="post" action="{{ url_for('tasks_update', tid=t.id) }}">
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label for="edit_title_{{ t.id }}">Title</label>
+                                            <input type="text" id="edit_title_{{ t.id }}" name="title" value="{{ t.title }}">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="edit_provider_{{ t.id }}">Provider</label>
+                                            <select id="edit_provider_{{ t.id }}" name="provider">
+                                                <option value="">Select Provider</option>
+                    {% for p in ['Geneway','Optiway','Enbiosis','Intelligene','Healthy Me','Sam Wearables','Umvuzo Fedhealth','Umvuzo Intelligene'] %}
+                                                    <option value="{{ p }}" {{ 'selected' if t.provider==p else '' }}>{{ p }}</option>
+                    {% endfor %}
+                  </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="edit_assignee_{{ t.id }}">Assignee</label>
+                                            <input type="text" id="edit_assignee_{{ t.id }}" name="assignee" value="{{ t.assignee or '' }}">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="edit_assigned_to_{{ t.id }}">Assigned To</label>
+                                            <input type="text" id="edit_assigned_to_{{ t.id }}" name="assigned_to" value="{{ t.assigned_to or '' }}">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="edit_due_date_{{ t.id }}">Due Date</label>
+                                            <input type="date" id="edit_due_date_{{ t.id }}" name="due_date" value="{{ t.due_date or '' }}">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="edit_status_{{ t.id }}">Status</label>
+                                            <select id="edit_status_{{ t.id }}" name="status">
+                    {% for s in ['Open','In Progress','Done'] %}
+                                                    <option value="{{ s }}" {{ 'selected' if t.status==s else '' }}>{{ s }}</option>
+                    {% endfor %}
+                  </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group full-width">
+                                        <label for="edit_notes_{{ t.id }}">Notes</label>
+                                        <textarea id="edit_notes_{{ t.id }}" name="notes" rows="3">{{ t.notes or '' }}</textarea>
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="fas fa-save"></i> Save Changes
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="toggleTaskDetails('task{{ t.id }}')">
+                                            <i class="fas fa-times"></i> Cancel
+                                        </button>
+                </div>
+              </form>
+
+                                <div class="delete-section">
+              <form method="post" action="{{ url_for('tasks_delete', tid=t.id) }}"
+                                          class="js-confirm-form" 
+                                          data-confirm="Delete this task? This cannot be undone."
+                                          data-confirm-title="Delete Task"
+                                          data-confirm-label="Delete">
+                                        <button class="btn btn-danger" type="submit">
+                                            <i class="fas fa-trash"></i> Delete Task
+                                        </button>
+              </form>
+            </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+        {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <div class="empty-state-title">No tasks yet</div>
+                    <div class="empty-state-subtitle">Add your first task using the form above</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+  </div>
+
+<style>
+/* Tasks Page Styles */
+.tasks-container {
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* Header Styles */
+.tasks-header {
+    margin-bottom: 30px;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tasks-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tasks-icon {
+    font-size: 2.2rem;
+    filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));
+}
+
+.tasks-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 400;
+}
+
+/* Add Task Card */
+.add-task-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+.add-task-header {
+    padding: 24px 24px 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+}
+
+.add-task-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.add-task-icon {
+    font-size: 1.3rem;
+}
+
+.add-task-body {
+    padding: 24px;
+}
+
+.add-task-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+input, select, textarea {
+    padding: 12px 16px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+input::placeholder, textarea::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+select option {
+    background: #1e293b;
+    color: #fff;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Button Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+}
+
+/* Tasks List */
+.tasks-list-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.tasks-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 24px 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+}
+
+.tasks-list-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tasks-list-icon {
+    font-size: 1.3rem;
+}
+
+.tasks-count {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.tasks-list-body {
+    padding: 24px;
+}
+
+.tasks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+/* Task Card */
+.task-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.task-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.task-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.4;
+    flex: 1;
+    margin-right: 12px;
+}
+
+.task-status {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.task-status-open {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.task-status-in-progress {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.task-status-done {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.task-details {
+    margin-bottom: 16px;
+}
+
+.task-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.task-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.task-info-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.task-info-value {
+    font-size: 0.9rem;
+    color: #fff;
+    font-weight: 500;
+}
+
+.task-notes {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.task-notes-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.task-notes-value {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.4;
+}
+
+.task-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.task-action-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.task-action-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Task Edit Form */
+.task-edit-form {
+    grid-column: 1 / -1;
+    margin-top: 20px;
+}
+
+.task-edit-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.1);
+}
+
+.task-edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.task-edit-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.task-edit-icon {
+    font-size: 1.1rem;
+}
+
+.task-edit-close {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.task-edit-close:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+.delete-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 8px;
+}
+
+.empty-state-subtitle {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .tasks-container {
+        padding: 16px;
+        width: 100%;
+    }
+    
+    .tasks-title {
+        font-size: 2rem;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tasks-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .task-info {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+function toggleTaskDetails(taskId) {
+    const element = document.getElementById(taskId);
+    if (element) {
+        element.hidden = !element.hidden;
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,3322 @@
+{% extends "base.html" %}
+
+{% block title %}Book Courier - {{ practitioner.first_name }} {{ practitioner.last_name }}{% endblock %}
+
+{% block content %}
+<div class="courier-booking-container">
+    <!-- Header -->
+    <div class="courier-booking-header">
+        <div class="courier-booking-header-content">
+            <h1 class="courier-booking-title">
+                <span class="courier-booking-icon">🚚</span>
+                Book Courier Service
+            </h1>
+            <p class="courier-booking-subtitle">
+                {% if context == 'order' %}
+                    Arrange courier delivery for Order #{{ order.id }} - {{ practitioner.title }} {{ practitioner.first_name }} {{ practitioner.last_name }}
+                {% else %}
+                    Arrange courier delivery for {{ practitioner.title }} {{ practitioner.first_name }} {{ practitioner.last_name }}
+                {% endif %}
+            </p>
+        </div>
+        <div class="courier-booking-actions">
+            {% if context == 'order' %}
+                <a href="{{ url_for('orders') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Orders
+                </a>
+            {% else %}
+                <a href="{{ url_for('practitioners') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Practitioners
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Booking Form -->
+    <div class="courier-booking-form">
+        <div class="courier-form-container">
+            <!-- Left Side: Shipment Details -->
+            <div class="form-left-panel">
+                <form method="POST" class="booking-form" id="delivery-form">
+                    <!-- Shipment Details -->
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-shipping-fast"></i>
+                            Shipment details
+                        </h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="custom_tracking_ref" class="form-label">Custom tracking ref. (Optional)</label>
+                                <div class="input-with-dropdown">
+                                    <input type="text" id="custom_tracking_ref" name="custom_tracking_ref" class="form-input" 
+                                           value="{% if context == 'order' %}TCG-{{ order.id }}{% else %}TCG-{{ practitioner.id }}{% endif %}"
+                                           placeholder="Enter custom tracking reference">
+                                    <select class="dropdown-select">
+                                        <option value="TCG">TCG</option>
+                                        <option value="CUSTOM">CUSTOM</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="customer_reference" class="form-label">Customer reference (Optional)</label>
+                                <div class="input-with-info">
+                                    <input type="text" id="customer_reference" name="customer_reference" class="form-input" 
+                                           value="{% if context == 'order' %}Order-{{ order.id }}{% else %}Practitioner-{{ practitioner.id }}{% endif %}"
+                                           placeholder="Enter customer reference">
+                                    <i class="fas fa-info-circle info-icon"></i>
+                                </div>
+                                <a href="#" class="add-reference-link">+ Add another customer reference</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collection Details -->
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-truck"></i>
+                            Collection
+                        </h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Earliest requested collection</label>
+                            <div class="datetime-input">
+                                <input type="date" id="collection_date" name="collection_date" class="form-input" required>
+                                <select id="collection_time" name="collection_time" class="form-select" required>
+                                    <option value="08:00">08:00</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="16:30">16:30</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Collection Type</label>
+                            <div class="tab-group">
+                                <label class="tab-option">
+                                    <input type="radio" name="collection_type" value="residential" checked>
+                                    <span class="tab-label">Residential</span>
+                                </label>
+                                <label class="tab-option">
+                                    <input type="radio" name="collection_type" value="business">
+                                    <span class="tab-label">Business</span>
+                                </label>
+                                <label class="tab-option">
+                                    <input type="radio" name="collection_type" value="locker">
+                                    <span class="tab-label">Locker</span>
+                                </label>
+                                <label class="tab-option">
+                                    <input type="radio" name="collection_type" value="kiosk">
+                                    <span class="tab-label">Kiosk</span>
+                                </label>
+                                <label class="tab-option">
+                                    <input type="radio" name="collection_type" value="international">
+                                    <span class="tab-label">International</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="collection_address" class="form-label">Address *</label>
+                            <div class="address-input-group">
+                                <input type="text" id="collection_address" name="collection_address" class="form-input" required 
+                                       value="Alenti Office Park, 457 Witherite St, The Willows, Pretoria, 0040"
+                                       placeholder="Enter a location">
+                                <a href="#" class="address-book-link">Add from address book</a>
+                                <div class="input-icons">
+                                    <i class="fas fa-search search-icon"></i>
+                                    <i class="fas fa-times clear-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="collection_building" class="form-label">Building / Floor / Unit</label>
+                                <input type="text" id="collection_building" name="collection_building" class="form-input" 
+                                       value="Alenti Office park Geneway Lab"
+                                       placeholder="e.g., Alenti Office park Geneway Lab">
+                            </div>
+                            <div class="form-group">
+                                <label for="collection_street" class="form-label">Street address *</label>
+                                <input type="text" id="collection_street" name="collection_street" class="form-input" required 
+                                       value="457 Witherite Road"
+                                       placeholder="e.g., 457 Witherite Road">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="collection_suburb" class="form-label">Suburb *</label>
+                                <input type="text" id="collection_suburb" name="collection_suburb" class="form-input" required 
+                                       value="The Willows"
+                                       placeholder="e.g., The Willows">
+                            </div>
+                            <div class="form-group">
+                                <label for="collection_city" class="form-label">City *</label>
+                                <input type="text" id="collection_city" name="collection_city" class="form-input" required 
+                                       value="Pretoria"
+                                       placeholder="e.g., Pretoria">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="collection_province" class="form-label">Province *</label>
+                                <select id="collection_province" name="collection_province" class="form-select" required>
+                                    <option value="">Select Province</option>
+                                    <option value="Gauteng" selected>Gauteng</option>
+                                    <option value="Western Cape">Western Cape</option>
+                                    <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                    <option value="Eastern Cape">Eastern Cape</option>
+                                    <option value="Free State">Free State</option>
+                                    <option value="Limpopo">Limpopo</option>
+                                    <option value="Mpumalanga">Mpumalanga</option>
+                                    <option value="Northern Cape">Northern Cape</option>
+                                    <option value="North West">North West</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="collection_postal_code" class="form-label">Postal code *</label>
+                                <input type="text" id="collection_postal_code" name="collection_postal_code" class="form-input" required 
+                                       value="0081"
+                                       placeholder="e.g., 0081">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="collection_instructions" class="form-label">Collection instructions (Optional)</label>
+                            <textarea id="collection_instructions" name="collection_instructions" class="form-textarea" rows="2" 
+                                      placeholder="e.g., Ring bell at door"></textarea>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="collection_contact_name" class="form-label">Contact Name and surname *</label>
+                                <input type="text" id="collection_contact_name" name="collection_contact_name" class="form-input" required 
+                                       value="{% if context == 'order' %}{{ order.name }} {{ order.surname }}{% else %}{{ practitioner.first_name }} {{ practitioner.last_name }}{% endif %}"
+                                       placeholder="Enter contact name">
+                            </div>
+                            <div class="form-group">
+                                <label for="collection_email" class="form-label">Email address</label>
+                                <input type="email" id="collection_email" name="collection_email" class="form-input" 
+                                       value="{% if context == 'order' %}{{ order.email or practitioner.email or '' }}{% else %}{{ practitioner.email or '' }}{% endif %}"
+                                       placeholder="Enter email address">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="collection_mobile" class="form-label">Mobile number *</label>
+                            <div class="phone-input">
+                                <select id="collection_country_code" name="collection_country_code" class="form-select">
+                                    <option value="+27">+27</option>
+                                </select>
+                                <input type="tel" id="collection_mobile" name="collection_mobile" class="form-input" required 
+                                       value="{% if context == 'order' %}{{ order.phone or practitioner.phone or '' }}{% else %}{{ practitioner.phone or '' }}{% endif %}"
+                                       placeholder="123456789">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Right Side: Delivery Details -->
+            <div class="form-right-panel">
+                <form method="POST" class="booking-form" id="delivery-form">
+                    <!-- Delivery Details -->
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-home"></i>
+                            Delivery
+                        </h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Delivery Type</label>
+                            <div class="tab-group">
+                                <label class="tab-option">
+                                    <input type="radio" name="delivery_type" value="residential" checked>
+                                    <span class="tab-label">Residential</span>
+                                </label>
+                                <label class="tab-option">
+                                    <input type="radio" name="delivery_type" value="business">
+                                    <span class="tab-label">Business</span>
+                                </label>
+                                <label class="tab-option">
+                                    <input type="radio" name="delivery_type" value="locker">
+                                    <span class="tab-label">Locker</span>
+                                </label>
+                                <label class="tab-option">
+                                    <input type="radio" name="delivery_type" value="kiosk">
+                                    <span class="tab-label">Kiosk</span>
+                                </label>
+                                <label class="tab-option">
+                                    <input type="radio" name="delivery_type" value="international">
+                                    <span class="tab-label">International</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="delivery_address" class="form-label">Address *</label>
+                            <div class="address-input-group">
+                                <input type="text" id="delivery_address" name="delivery_address" class="form-input" required 
+                                       value="25 Evenel St, Birchleigh North, Kempton Park, 1618"
+                                       placeholder="Enter a location">
+                                <a href="#" class="address-book-link">Add from address book</a>
+                                <div class="input-icons">
+                                    <i class="fas fa-search search-icon"></i>
+                                    <i class="fas fa-times clear-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Enter address manually</label>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="manual_address_toggle" class="toggle-input">
+                                <label for="manual_address_toggle" class="toggle-label">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Manual Address Fields (Hidden by default) -->
+                        <div id="manual-address-fields" class="manual-address-section" style="display: none;">
+                            <div class="form-group">
+                                <label for="delivery_building" class="form-label">Building/Complex Name (Optional)</label>
+                                <input type="text" id="delivery_building" name="delivery_building" class="form-input">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="delivery_street" class="form-label">Street Address</label>
+                                <input type="text" id="delivery_street" name="delivery_street" class="form-input">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="delivery_suburb" class="form-label">Suburb</label>
+                                <input type="text" id="delivery_suburb" name="delivery_suburb" class="form-input">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="delivery_city" class="form-label">City</label>
+                                <input type="text" id="delivery_city" name="delivery_city" class="form-input">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="delivery_province" class="form-label">Province</label>
+                                <select id="delivery_province" name="delivery_province" class="form-input">
+                                    <option value="">Select Province</option>
+                                    <option value="Gauteng">Gauteng</option>
+                                    <option value="Western Cape">Western Cape</option>
+                                    <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                    <option value="Eastern Cape">Eastern Cape</option>
+                                    <option value="Free State">Free State</option>
+                                    <option value="Limpopo">Limpopo</option>
+                                    <option value="Mpumalanga">Mpumalanga</option>
+                                    <option value="Northern Cape">Northern Cape</option>
+                                    <option value="North West">North West</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="delivery_postal_code" class="form-label">Postal Code</label>
+                                <input type="text" id="delivery_postal_code" name="delivery_postal_code" class="form-input">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="delivery_instructions" class="form-label">Delivery instructions (Optional)</label>
+                            <textarea id="delivery_instructions" name="delivery_instructions" class="form-textarea" rows="2" 
+                                      placeholder="eg. Leave at gate"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Earliest requested delivery</label>
+                            <div class="delivery-date-display">
+                                <span id="delivery_date_display">Tue, 23 Sep 2025</span>
+                                <i class="fas fa-pencil-alt edit-icon"></i>
+                            </div>
+                            <input type="date" id="delivery_date" name="delivery_date" class="form-input" required style="display: none;">
+                        </div>
+
+
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Parcel Selection Section -->
+        <div class="parcel-selection-container">
+            <div class="parcel-selection-header">
+                <h3 class="parcel-selection-title">
+                    <i class="fas fa-box"></i>
+                    Choose Your Packaging
+                </h3>
+                <p class="parcel-selection-subtitle">Select the appropriate packaging type for your shipment</p>
+            </div>
+            
+            <div class="parcel-options-grid">
+                <div class="parcel-card" data-parcel-type="standard-flyer">
+                    <div class="parcel-card-header">
+                        <div class="parcel-icon">📄</div>
+                        <div class="parcel-title">Standard Flyer</div>
+                    </div>
+                    <div class="parcel-card-body">
+                        <p class="parcel-description">Documents, letters, and small flat items</p>
+                        <div class="parcel-specs">
+                            <div class="spec-item">
+                                <span class="spec-label">Weight:</span>
+                                <span class="spec-value">Max 2kg</span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-label">Size:</span>
+                                <span class="spec-value">A4</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="parcel-card-footer">
+                        <input type="radio" name="parcel_type" value="standard-flyer" id="parcel_standard_flyer" checked>
+                        <label for="parcel_standard_flyer" class="parcel-select-btn">
+                            <span class="btn-text">Select</span>
+                            <span class="btn-icon">✓</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="parcel-card" data-parcel-type="stock-1">
+                    <div class="parcel-card-header">
+                        <div class="parcel-icon">📦</div>
+                        <div class="parcel-title">Stock 1</div>
+                    </div>
+                    <div class="parcel-card-body">
+                        <p class="parcel-description">Small parcels and lightweight items</p>
+                        <div class="parcel-specs">
+                            <div class="spec-item">
+                                <span class="spec-label">Weight:</span>
+                                <span class="spec-value">Max 5kg</span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-label">Dimensions:</span>
+                                <span class="spec-value">30×20×10cm</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="parcel-card-footer">
+                        <input type="radio" name="parcel_type" value="stock-1" id="parcel_stock_1">
+                        <label for="parcel_stock_1" class="parcel-select-btn">
+                            <span class="btn-text">Select</span>
+                            <span class="btn-icon">✓</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="parcel-card" data-parcel-type="stock-2">
+                    <div class="parcel-card-header">
+                        <div class="parcel-icon">📦📦</div>
+                        <div class="parcel-title">Stock 2</div>
+                    </div>
+                    <div class="parcel-card-body">
+                        <p class="parcel-description">Medium parcels and standard items</p>
+                        <div class="parcel-specs">
+                            <div class="spec-item">
+                                <span class="spec-label">Weight:</span>
+                                <span class="spec-value">Max 10kg</span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-label">Dimensions:</span>
+                                <span class="spec-value">40×30×20cm</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="parcel-card-footer">
+                        <input type="radio" name="parcel_type" value="stock-2" id="parcel_stock_2">
+                        <label for="parcel_stock_2" class="parcel-select-btn">
+                            <span class="btn-text">Select</span>
+                            <span class="btn-icon">✓</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="parcel-card" data-parcel-type="stock-3">
+                    <div class="parcel-card-header">
+                        <div class="parcel-icon">📦📦📦</div>
+                        <div class="parcel-title">Stock 3</div>
+                    </div>
+                    <div class="parcel-card-body">
+                        <p class="parcel-description">Large parcels and bulky items</p>
+                        <div class="parcel-specs">
+                            <div class="spec-item">
+                                <span class="spec-label">Weight:</span>
+                                <span class="spec-value">Max 20kg</span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-label">Dimensions:</span>
+                                <span class="spec-value">60×40×30cm</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="parcel-card-footer">
+                        <input type="radio" name="parcel_type" value="stock-3" id="parcel_stock_3">
+                        <label for="parcel_stock_3" class="parcel-select-btn">
+                            <span class="btn-text">Select</span>
+                            <span class="btn-icon">✓</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="parcel-card" data-parcel-type="stock-4">
+                    <div class="parcel-card-header">
+                        <div class="parcel-icon">📦📦📦📦</div>
+                        <div class="parcel-title">Stock 4</div>
+                    </div>
+                    <div class="parcel-card-body">
+                        <p class="parcel-description">Extra large parcels and heavy items</p>
+                        <div class="parcel-specs">
+                            <div class="spec-item">
+                                <span class="spec-label">Weight:</span>
+                                <span class="spec-value">Max 30kg</span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-label">Dimensions:</span>
+                                <span class="spec-value">80×50×40cm</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="parcel-card-footer">
+                        <input type="radio" name="parcel_type" value="stock-4" id="parcel_stock_4">
+                        <label for="parcel_stock_4" class="parcel-select-btn">
+                            <span class="btn-text">Select</span>
+                            <span class="btn-icon">✓</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="parcel-card" data-parcel-type="stock-5">
+                    <div class="parcel-card-header">
+                        <div class="parcel-icon">📦📦📦📦📦</div>
+                        <div class="parcel-title">Stock 5</div>
+                    </div>
+                    <div class="parcel-card-body">
+                        <p class="parcel-description">Oversized parcels and maximum weight</p>
+                        <div class="parcel-specs">
+                            <div class="spec-item">
+                                <span class="spec-label">Weight:</span>
+                                <span class="spec-value">Max 50kg</span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-label">Dimensions:</span>
+                                <span class="spec-value">100×60×50cm</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="parcel-card-footer">
+                        <input type="radio" name="parcel_type" value="stock-5" id="parcel_stock_5">
+                        <label for="parcel_stock_5" class="parcel-select-btn">
+                            <span class="btn-text">Select</span>
+                            <span class="btn-icon">✓</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Parcel Option -->
+            <div class="custom-parcel-section">
+                <div class="custom-parcel-toggle">
+                    <label class="custom-toggle-label">
+                        <input type="checkbox" id="custom-parcel-toggle" class="custom-toggle-input">
+                        <span class="custom-toggle-slider"></span>
+                        <span class="custom-toggle-text">Use custom dimensions</span>
+                    </label>
+                </div>
+                
+                <div id="custom-parcel-fields" class="custom-parcel-fields" style="display: none;">
+                    <div class="custom-fields-grid">
+                        <div class="custom-field">
+                            <label for="custom_length" class="custom-field-label">Length (cm)</label>
+                            <input type="number" id="custom_length" name="custom_length" class="custom-field-input" min="1" max="200" step="0.1">
+                        </div>
+                        <div class="custom-field">
+                            <label for="custom_width" class="custom-field-label">Width (cm)</label>
+                            <input type="number" id="custom_width" name="custom_width" class="custom-field-input" min="1" max="200" step="0.1">
+                        </div>
+                        <div class="custom-field">
+                            <label for="custom_height" class="custom-field-label">Height (cm)</label>
+                            <input type="number" id="custom_height" name="custom_height" class="custom-field-input" min="1" max="200" step="0.1">
+                        </div>
+                        <div class="custom-field">
+                            <label for="custom_weight" class="custom-field-label">Weight (kg)</label>
+                            <input type="number" id="custom_weight" name="custom_weight" class="custom-field-input" min="0.1" max="50" step="0.1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons Section -->
+        <div class="action-buttons-container">
+            <div class="action-buttons-content">
+                <div class="action-buttons-header">
+                    <h3 class="action-buttons-title">
+                        <i class="fas fa-rocket"></i>
+                        Ready to Ship?
+                    </h3>
+                    <p class="action-buttons-subtitle">Get rates and book your courier service</p>
+                </div>
+                
+                <div class="action-buttons-grid">
+                    <button type="button" id="get-rates-btn" class="btn btn-secondary btn-large action-btn">
+                        <div class="btn-icon">
+                            <i class="fas fa-calculator"></i>
+                        </div>
+                        <div class="btn-content">
+                            <span class="btn-title">Get Rates</span>
+                            <span class="btn-subtitle">Compare pricing options</span>
+                        </div>
+                    </button>
+                    
+                    <button type="button" id="book-courier-btn" class="btn btn-primary btn-large action-btn" onclick="finalizeBooking()" disabled style="opacity: 0.5; cursor: not-allowed;">
+                        <div class="btn-icon">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                        <div class="btn-content">
+                            <span class="btn-title">Book Courier</span>
+                            <span class="btn-subtitle">Schedule pickup & delivery</span>
+                        </div>
+                    </button>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- Rates Modal -->
+        <div id="ratesModal" class="modal-overlay" style="display: none;">
+            <div class="modal-container rates-modal">
+                <div class="modal-header">
+                    <h2 class="modal-title">
+                        <span class="modal-icon">💰</span>
+                        Available Rates
+                    </h2>
+                    <button class="modal-close" onclick="closeRatesModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-content">
+                    <div id="rates-content">
+                        <div class="loading-rates">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Fetching rates...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeRatesModal()">Cancel</button>
+                    <button class="btn btn-primary" id="select-rate-btn" onclick="selectRate()" disabled>
+                        <i class="fas fa-check"></i> Select Rate
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden form for submission -->
+        <form method="POST" id="hidden-form" style="display: none;">
+            <input type="hidden" name="service_type" id="selected_service_type">
+            <input type="hidden" name="service_cost" id="selected_service_cost">
+            <!-- All other form fields will be populated by JavaScript -->
+        </form>
+    </div>
+
+    <!-- Service Information -->
+    <div class="service-info">
+        <div class="service-info-card">
+            <h4 class="service-info-title">
+                <i class="fas fa-clock"></i>
+                Delivery Times
+            </h4>
+            <ul class="service-info-list">
+                <li><strong>Standard Delivery:</strong> 1-2 business days</li>
+                <li><strong>Express Delivery:</strong> Same day (if booked before 2 PM)</li>
+                <li><strong>Weekend Delivery:</strong> Available with additional fee</li>
+            </ul>
+        </div>
+        
+        <div class="service-info-card">
+            <h4 class="service-info-title">
+                <i class="fas fa-shield-alt"></i>
+                Service Features
+            </h4>
+            <ul class="service-info-list">
+                <li>Real-time tracking</li>
+                <li>Delivery confirmation</li>
+                <li>Insurance coverage</li>
+                <li>Professional couriers</li>
+            </ul>
+        </div>
+        
+        <div class="service-info-card">
+            <h4 class="service-info-title">
+                <i class="fas fa-phone"></i>
+                Support
+            </h4>
+            <p class="service-info-text">
+                Need help? Contact our courier support team at 
+                <strong>support@shiplogic.com</strong> or call 
+                <strong>+27 12 345 6789</strong>
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Courier Booking Styles */
+.courier-booking-container {
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #fff;
+}
+
+/* Split Screen Layout */
+.courier-form-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.form-left-panel,
+.form-right-panel {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* Input with Dropdown */
+.input-with-dropdown {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.dropdown-select {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: #fff;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    min-width: 80px;
+}
+
+.dropdown-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Input with Info Icon */
+.input-with-info {
+    position: relative;
+}
+
+.info-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+    cursor: help;
+}
+
+.add-reference-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 0.9rem;
+    margin-top: 8px;
+    display: inline-block;
+}
+
+.add-reference-link:hover {
+    color: #60a5fa;
+    text-decoration: underline;
+}
+
+/* Tab Group */
+.tab-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.tab-option {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.tab-option input[type="radio"] {
+    display: none;
+}
+
+.tab-label {
+    padding: 8px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.tab-option input[type="radio"]:checked + .tab-label {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #fff;
+}
+
+.tab-option:hover .tab-label {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Address Input Group */
+.address-input-group {
+    position: relative;
+}
+
+.address-book-link {
+    position: absolute;
+    right: 50px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 0.85rem;
+    z-index: 2;
+}
+
+.input-icons {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+}
+
+.search-icon,
+.clear-icon {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.search-icon:hover,
+.clear-icon:hover {
+    color: #3b82f6;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.toggle-input {
+    display: none;
+}
+
+.toggle-label {
+    position: relative;
+    width: 50px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.toggle-input:checked + .toggle-label {
+    background: #3b82f6;
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+}
+
+.toggle-input:checked + .toggle-label .toggle-slider {
+    transform: translateX(26px);
+}
+
+/* Delivery Date Display */
+.delivery-date-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.delivery-date-display:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.edit-icon {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+}
+
+/* Provider Selection Styles */
+.provider-selection-section {
+    margin-top: 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+.provider-selection-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #3b82f6;
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.provider-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.provider-option {
+    position: relative;
+}
+
+.provider-option input[type="radio"] {
+    display: none;
+}
+
+.provider-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.provider-label:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.provider-option input[type="radio"]:checked + .provider-label {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2);
+}
+
+.provider-icon {
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+
+.provider-info {
+    flex: 1;
+}
+
+.provider-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.provider-description {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Get Rates Section */
+.get-rates-section {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.get-rates-section .btn {
+    padding: 15px 40px;
+    font-size: 1.1rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+/* Rates Modal */
+.rates-modal {
+    max-width: 800px;
+    width: 90%;
+}
+
+.loading-rates {
+    text-align: center;
+    padding: 40px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.loading-rates i {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    color: #3b82f6;
+}
+
+.rate-option {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.rate-option:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(59, 130, 246, 0.3);
+    transform: translateY(-2px);
+}
+
+.rate-option.selected {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+}
+
+.rate-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.rate-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #3b82f6;
+    margin: 0;
+}
+
+.rate-price {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #10b981;
+}
+
+.rate-description {
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.5;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .courier-form-container {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .form-left-panel,
+    .form-right-panel {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .courier-booking-container {
+        padding: 15px;
+    }
+    
+    .tab-group {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .tab-label {
+        text-align: center;
+    }
+    
+    .rates-modal {
+        width: 95%;
+    }
+}
+
+/* Parcel Selection Styles */
+.parcel-selection-container {
+    max-width: 1400px;
+    margin: 30px auto 0;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.parcel-selection-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.parcel-selection-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.parcel-selection-title i {
+    color: #3b82f6;
+    font-size: 1.8rem;
+}
+
+.parcel-selection-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.parcel-options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.parcel-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+.parcel-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(59, 130, 246, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.parcel-card.selected {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+}
+
+.parcel-card-header {
+    padding: 20px 20px 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.parcel-icon {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+    text-align: center;
+    min-width: 60px;
+}
+
+.parcel-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #3b82f6;
+    margin: 0;
+}
+
+.parcel-card-body {
+    padding: 15px 20px;
+}
+
+.parcel-description {
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0 0 15px 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.parcel-specs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.spec-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 6px;
+}
+
+.spec-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.spec-value {
+    color: #10b981;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.parcel-card-footer {
+    padding: 15px 20px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.parcel-card-footer input[type="radio"] {
+    display: none;
+}
+
+.parcel-select-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.parcel-select-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
+}
+
+.parcel-card.selected .parcel-select-btn {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #fff;
+}
+
+.parcel-card.selected .parcel-select-btn .btn-icon {
+    opacity: 1;
+}
+
+.btn-icon {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/* Custom Parcel Section */
+.custom-parcel-section {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 25px;
+}
+
+.custom-parcel-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.custom-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.custom-toggle-input {
+    display: none;
+}
+
+.custom-toggle-slider {
+    position: relative;
+    width: 50px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.custom-toggle-slider::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.custom-toggle-input:checked + .custom-toggle-slider {
+    background: #3b82f6;
+}
+
+.custom-toggle-input:checked + .custom-toggle-slider::before {
+    transform: translateX(26px);
+}
+
+.custom-toggle-text {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.custom-parcel-fields {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 15px;
+}
+
+.custom-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.custom-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.custom-field-label {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+.custom-field-input {
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: #fff;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.custom-field-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.custom-field-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .parcel-selection-container {
+        padding: 20px;
+        margin: 20px auto 0;
+    }
+    
+    .parcel-selection-title {
+        font-size: 1.6rem;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .parcel-options-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .parcel-card-header {
+        padding: 15px 15px 10px;
+    }
+    
+    .parcel-card-body {
+        padding: 10px 15px;
+    }
+    
+    .parcel-card-footer {
+        padding: 10px 15px 15px;
+    }
+    
+    .parcel-icon {
+        font-size: 2rem;
+    }
+    
+    .custom-fields-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.courier-booking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.courier-booking-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.courier-booking-icon {
+    font-size: 2.2rem;
+}
+
+.courier-booking-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    margin: 8px 0 0 0;
+    font-size: 1rem;
+}
+
+.courier-booking-form {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 30px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.booking-form {
+    max-width: 800px;
+}
+
+.form-section {
+    margin-bottom: 30px;
+}
+
+.form-section-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #3b82f6;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.form-input, .form-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.form-input:focus, .form-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input::placeholder, .form-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.datetime-input {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.datetime-input input[type="date"] {
+    flex: 1;
+}
+
+.datetime-input select {
+    flex: 0 0 120px;
+}
+
+.radio-group {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.radio-option input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #3b82f6;
+}
+
+.radio-label {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+.phone-input {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.phone-input select {
+    flex: 0 0 80px;
+}
+
+.phone-input input {
+    flex: 1;
+}
+
+.parcel-item {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.parcel-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #3b82f6;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.important-notice {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 20px;
+}
+
+.important-notice h4 {
+    color: #f59e0b;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.important-notice p {
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.service-options {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.service-option {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.service-option:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(59, 130, 246, 0.3);
+    transform: translateY(-2px);
+}
+
+.service-option.selected {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+}
+
+.service-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.service-info {
+    flex: 1;
+    margin-right: 20px;
+}
+
+.service-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #3b82f6;
+    margin: 0 0 8px 0;
+}
+
+.service-description {
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.5;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.service-pricing {
+    text-align: right;
+    min-width: 120px;
+}
+
+.service-price {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #10b981;
+    margin-bottom: 4px;
+}
+
+.service-vat {
+    display: block;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.service-radio {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.service-radio input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    accent-color: #3b82f6;
+}
+
+.service-radio label {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.service-summary {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.summary-item:last-child {
+    margin-bottom: 0;
+}
+
+.summary-label {
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+.summary-value {
+    color: #10b981;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-large {
+    padding: 14px 28px;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.service-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.service-info-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.service-info-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #10b981;
+}
+
+.service-info-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.service-info-list li {
+    padding: 8px 0;
+    color: rgba(255, 255, 255, 0.8);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.service-info-list li:last-child {
+    border-bottom: none;
+}
+
+.service-info-text {
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .courier-booking-header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+    
+    .courier-booking-title {
+        font-size: 1.5rem;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .service-info {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Provider Modal Styles */
+.provider-modal {
+    max-width: 600px;
+    width: 90%;
+}
+
+.provider-selection-button {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.provider-selection-button .btn {
+    padding: 15px 40px;
+    font-size: 1.1rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+}
+
+.provider-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.provider-option {
+    position: relative;
+}
+
+.provider-option input[type="radio"] {
+    display: none;
+}
+
+.provider-label {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.provider-label:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(59, 130, 246, 0.3);
+    transform: translateY(-2px);
+}
+
+.provider-option input[type="radio"]:checked + .provider-label {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+}
+
+.provider-icon {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+}
+
+.provider-info {
+    flex: 1;
+}
+
+.provider-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+}
+
+/* Manual Address Section */
+.manual-address-section {
+    margin-top: 20px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Action Buttons Section */
+.action-buttons-section {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    justify-content: center;
+}
+
+.action-buttons-section .btn {
+    flex: 1;
+    max-width: 200px;
+    padding: 15px 25px;
+    font-size: 1.1rem;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.action-buttons-section .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* New Action Buttons Container Styles */
+.action-buttons-container {
+    margin: 40px 0;
+    padding: 0 20px;
+}
+
+.action-buttons-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.8));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 30px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.action-buttons-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.action-buttons-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 10px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.action-buttons-title i {
+    color: #f59e0b;
+    font-size: 1.5rem;
+}
+
+.action-buttons-subtitle {
+    color: #94a3b8;
+    font-size: 1rem;
+    margin: 0;
+    font-weight: 400;
+}
+
+.action-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    font-family: inherit;
+    min-width: 200px;
+}
+
+.action-btn .btn-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.action-btn .btn-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    flex: 1;
+}
+
+.action-btn .btn-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 2px 0;
+    line-height: 1.2;
+    color: inherit;
+}
+
+.action-btn .btn-subtitle {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin: 0;
+    line-height: 1.2;
+    color: inherit;
+}
+
+/* Secondary Button Styles */
+.action-btn.btn-secondary {
+    background: #374151;
+    color: #ffffff;
+    border: 2px solid #4b5563;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn.btn-secondary .btn-icon {
+    background: #3b82f6;
+    color: #ffffff;
+}
+
+.action-btn.btn-secondary:hover {
+    background: #4b5563;
+    border-color: #6b7280;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Primary Button Styles */
+.action-btn.btn-primary {
+    background: #f59e0b;
+    color: #ffffff;
+    border: 2px solid #d97706;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.action-btn.btn-primary .btn-icon {
+    background: #ffffff;
+    color: #f59e0b;
+}
+
+.action-btn.btn-primary:hover {
+    background: #d97706;
+    border-color: #b45309;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+}
+
+.action-btn.btn-primary:disabled {
+    background: #6b7280;
+    border-color: #9ca3af;
+    color: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.action-btn.btn-primary:disabled .btn-icon {
+    background: #9ca3af;
+    color: #6b7280;
+}
+
+/* Debug Section Styles */
+.debug-section {
+    margin-top: 25px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.debug-title {
+    color: #f59e0b;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 15px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.debug-content {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+/* Selected Service Display Styles */
+.selected-service-display {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05));
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 12px;
+    display: none;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+
+.selected-service-display.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.selected-service-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.selected-service-icon {
+    color: #22c55e;
+    font-size: 1.5rem;
+}
+
+.selected-service-info h4 {
+    color: #22c55e;
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.selected-service-info p {
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0 0 0.25rem 0;
+    font-size: 0.9rem;
+}
+
+.selected-service-info small {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8rem;
+}
+
+.debug-content p {
+    margin: 8px 0;
+}
+
+.debug-content strong {
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-container {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(51, 65, 85, 0.95));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 0;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.modal-header {
+    padding: 25px 30px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title {
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-icon {
+    font-size: 1.8rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-content {
+    padding: 30px;
+}
+
+.modal-footer {
+    padding: 20px 30px 25px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+}
+
+.provider-modal {
+    max-width: 500px;
+}
+
+.provider-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.provider-option {
+    position: relative;
+}
+
+.provider-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.provider-label {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.provider-option input[type="radio"]:checked + .provider-label {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.provider-icon {
+    font-size: 2rem;
+}
+
+.provider-name {
+    color: white;
+    font-weight: 500;
+    font-size: 1.1rem;
+}
+
+.no-rates {
+    text-align: center;
+    padding: 40px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.no-rates i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    color: #f59e0b;
+}
+
+.error-message {
+    text-align: center;
+    padding: 40px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.error-message i {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    color: #ef4444;
+}
+</style>
+
+<!-- Provider Selection Modal -->
+<div id="providerModal" class="modal-overlay" style="display: none;">
+    <div class="modal-container provider-modal">
+        <div class="modal-header">
+            <h2 class="modal-title">
+                <span class="modal-icon">🚚</span>
+                Select Courier Provider
+            </h2>
+            <button class="modal-close" onclick="closeProviderModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="modal-content">
+            <div class="provider-options">
+                <div class="provider-option">
+                    <input type="radio" name="courier_provider" value="courier_guy_geneway" id="provider_courier_guy_geneway" {% if selected_provider == 'courier_guy_geneway' %}checked{% endif %}>
+                    <label for="provider_courier_guy_geneway" class="provider-label">
+                        <div class="provider-icon">🚚</div>
+                        <div class="provider-info">
+                            <div class="provider-name">Courier Guy (Geneway)</div>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="provider-option">
+                    <input type="radio" name="courier_provider" value="courier_guy_healthy_me" id="provider_courier_guy_healthy_me" {% if selected_provider == 'courier_guy_healthy_me' %}checked{% endif %}>
+                    <label for="provider_courier_guy_healthy_me" class="provider-label">
+                        <div class="provider-icon">🏥</div>
+                        <div class="provider-info">
+                            <div class="provider-name">Courier Guy (Healthy Me)</div>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="provider-option">
+                    <input type="radio" name="courier_provider" value="courier_guy_intelligene" id="provider_courier_guy_intelligene" {% if selected_provider == 'courier_guy_intelligene' %}checked{% endif %}>
+                    <label for="provider_courier_guy_intelligene" class="provider-label">
+                        <div class="provider-icon">🧠</div>
+                        <div class="provider-info">
+                            <div class="provider-name">Courier Guy (Intelligene)</div>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="provider-option">
+                    <input type="radio" name="courier_provider" value="mds_geneway" id="provider_mds_geneway" {% if selected_provider == 'mds_geneway' %}checked{% endif %}>
+                    <label for="provider_mds_geneway" class="provider-label">
+                        <div class="provider-icon">📦</div>
+                        <div class="provider-info">
+                            <div class="provider-name">MDS (Geneway)</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeProviderModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="selectProvider()">Select Provider</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default dates
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    // Set collection date to tomorrow
+    const collectionDateInput = document.getElementById('collection_date');
+    if (collectionDateInput) {
+        collectionDateInput.value = tomorrow.toISOString().split('T')[0];
+    }
+    
+    // Set delivery date to day after tomorrow
+    const deliveryDateInput = document.getElementById('delivery_date');
+    if (deliveryDateInput) {
+        const dayAfterTomorrow = new Date(tomorrow);
+        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+        deliveryDateInput.value = dayAfterTomorrow.toISOString().split('T')[0];
+    }
+    
+    // Set default collection time to 09:00
+    const collectionTimeSelect = document.getElementById('collection_time');
+    if (collectionTimeSelect) {
+        collectionTimeSelect.value = '09:00';
+    }
+    
+    // Form validation
+    const form = document.querySelector('.booking-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Validate required fields
+            const requiredFields = form.querySelectorAll('[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.style.borderColor = '#ef4444';
+                    isValid = false;
+                } else {
+                    field.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Please fill in all required fields.');
+                return false;
+            }
+            
+            // Validate collection date is not in the past
+            const collectionDate = new Date(collectionDateInput.value);
+            if (collectionDate < today) {
+                e.preventDefault();
+                alert('Collection date cannot be in the past.');
+                collectionDateInput.style.borderColor = '#ef4444';
+                return false;
+            }
+            
+            // Validate delivery date is after collection date
+            const deliveryDate = new Date(deliveryDateInput.value);
+            if (deliveryDate <= collectionDate) {
+                e.preventDefault();
+                alert('Delivery date must be after collection date.');
+                deliveryDateInput.style.borderColor = '#ef4444';
+                return false;
+            }
+        });
+    }
+    
+    // Auto-fill delivery address with collection address
+    const collectionAddress = document.getElementById('collection_address');
+    const deliveryAddress = document.getElementById('delivery_address');
+    
+    if (collectionAddress && deliveryAddress) {
+        collectionAddress.addEventListener('blur', function() {
+            if (!deliveryAddress.value) {
+                deliveryAddress.value = this.value;
+            }
+        });
+    }
+    
+    // Copy collection details to delivery details
+    const copyCollectionBtn = document.createElement('button');
+    copyCollectionBtn.type = 'button';
+    copyCollectionBtn.className = 'btn btn-secondary btn-sm';
+    copyCollectionBtn.innerHTML = '<i class="fas fa-copy"></i> Copy from Collection';
+    copyCollectionBtn.style.marginBottom = '16px';
+    
+    const deliverySection = document.querySelector('.form-section:nth-child(3)');
+    if (deliverySection) {
+        deliverySection.insertBefore(copyCollectionBtn, deliverySection.firstChild);
+        
+        copyCollectionBtn.addEventListener('click', function() {
+            // Copy address details
+            document.getElementById('delivery_address').value = document.getElementById('collection_address').value;
+            document.getElementById('delivery_building').value = document.getElementById('collection_building').value;
+            document.getElementById('delivery_street').value = document.getElementById('collection_street').value;
+            document.getElementById('delivery_suburb').value = document.getElementById('collection_suburb').value;
+            document.getElementById('delivery_city').value = document.getElementById('collection_city').value;
+            document.getElementById('delivery_province').value = document.getElementById('collection_province').value;
+            document.getElementById('delivery_postal_code').value = document.getElementById('collection_postal_code').value;
+            document.getElementById('delivery_instructions').value = document.getElementById('collection_instructions').value;
+            document.getElementById('delivery_contact_name').value = document.getElementById('collection_contact_name').value;
+            document.getElementById('delivery_email').value = document.getElementById('collection_email').value;
+            document.getElementById('delivery_mobile').value = document.getElementById('collection_mobile').value;
+            
+            // Copy delivery type to match collection type
+            const collectionType = document.querySelector('input[name="collection_type"]:checked').value;
+            document.querySelector(`input[name="delivery_type"][value="${collectionType}"]`).checked = true;
+        });
+    }
+    
+    // Service selection handling
+    let serviceData = {};
+    let pricingLoaded = false;
+    let selectedRate = null;
+    
+    // Parcel data mapping
+    const parcelData = {
+        'standard-flyer': { weight: 2, length: 30, width: 21, height: 1, description: 'Documents, letters, and small flat items' },
+        'stock-1': { weight: 5, length: 30, width: 20, height: 10, description: 'Small parcels and lightweight items' },
+        'stock-2': { weight: 10, length: 40, width: 30, height: 20, description: 'Medium parcels and standard items' },
+        'stock-3': { weight: 20, length: 60, width: 40, height: 30, description: 'Large parcels and bulky items' },
+        'stock-4': { weight: 30, length: 80, width: 50, height: 40, description: 'Extra large parcels and heavy items' },
+        'stock-5': { weight: 50, length: 100, width: 60, height: 50, description: 'Oversized parcels and maximum weight' }
+    };
+    
+    function fetchPricing() {
+        const pickupAddress = document.getElementById('collection_address').value;
+        const deliveryAddress = document.getElementById('delivery_address').value;
+        const parcelWeight = parseFloat(document.getElementById('parcel_weight').value) || 1.0;
+        
+        if (!pickupAddress || !deliveryAddress) {
+            console.log('Addresses not ready for pricing');
+            return;
+        }
+        
+        // Show loading state
+        document.querySelectorAll('.service-price').forEach(price => {
+            price.textContent = 'Loading...';
+        });
+        
+        fetch('/api/courier-pricing', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                pickup_address: pickupAddress,
+                delivery_address: deliveryAddress,
+                parcel_weight: parcelWeight
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update service data
+                serviceData = {};
+                data.services.forEach(service => {
+                    serviceData[service.code] = {
+                        name: service.name,
+                        price: service.price > 0 ? `R ${service.price.toFixed(2)}` : 'Contact for Quote',
+                        deadline: service.deadline,
+                        delivery: service.delivery_time,
+                        available: service.available
+                    };
+                });
+                
+                // Update service options in the UI
+                updateServiceOptions(data.services);
+                
+                // Update summary if a service is selected
+                const selectedService = document.querySelector('input[name="service_type"]:checked');
+                if (selectedService) {
+                    updateServiceSummary(selectedService.value);
+                }
+                
+                pricingLoaded = true;
+            } else {
+                console.error('Pricing API error:', data.error);
+                showPricingError();
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching pricing:', error);
+            showPricingError();
+        });
+    }
+    
+    function updateServiceOptions(services) {
+        services.forEach(service => {
+            const serviceOption = document.querySelector(`[data-service="${service.code}"]`);
+            if (serviceOption) {
+                const priceElement = serviceOption.querySelector('.service-price');
+                const vatElement = serviceOption.querySelector('.service-vat');
+                
+                if (priceElement) {
+                    priceElement.textContent = service.price > 0 ? `R ${service.price.toFixed(2)}` : 'Contact for Quote';
+                }
+                
+                if (vatElement) {
+                    vatElement.textContent = service.price > 0 ? 'incl. VAT' : 'Express Service';
+                }
+                
+                // Disable unavailable services
+                const radioButton = serviceOption.querySelector('input[type="radio"]');
+                if (radioButton) {
+                    radioButton.disabled = !service.available;
+                    if (!service.available) {
+                        serviceOption.style.opacity = '0.5';
+                        serviceOption.style.cursor = 'not-allowed';
+                    }
+                }
+            }
+        });
+    }
+    
+    function showPricingError() {
+        document.querySelectorAll('.service-price').forEach(price => {
+            price.textContent = 'Error loading';
+            price.style.color = '#ef4444';
+        });
+    }
+    
+    function updateServiceSummary(serviceType) {
+        const service = serviceData[serviceType];
+        if (service) {
+            document.getElementById('selected-service').textContent = service.name;
+            document.getElementById('total-cost').textContent = service.price;
+            document.getElementById('collection-deadline').textContent = service.deadline;
+            document.getElementById('delivery-time').textContent = service.delivery;
+        }
+    }
+    
+    // Handle service selection
+    const serviceRadios = document.querySelectorAll('input[name="service_type"]');
+    const serviceOptions = document.querySelectorAll('.service-option');
+    
+    serviceRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Update visual selection
+            serviceOptions.forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            const selectedOption = document.querySelector(`[data-service="${this.value}"]`);
+            if (selectedOption) {
+                selectedOption.classList.add('selected');
+            }
+            
+            // Update summary
+            updateServiceSummary(this.value);
+            
+            // Update collection time based on service
+            const collectionTimeSelect = document.getElementById('collection_time');
+            if (collectionTimeSelect) {
+                if (this.value === 'LSF' || this.value === 'LSE') {
+                    // Same day services need earlier collection
+                    collectionTimeSelect.value = '09:00';
+                } else {
+                    // Overnight services can be later
+                    collectionTimeSelect.value = '14:00';
+                }
+            }
+        });
+    });
+    
+    // Initialize with default selection
+    const defaultService = document.querySelector('input[name="service_type"]:checked');
+    if (defaultService) {
+        updateServiceSummary(defaultService.value);
+        const defaultOption = document.querySelector(`[data-service="${defaultService.value}"]`);
+        if (defaultOption) {
+            defaultOption.classList.add('selected');
+        }
+    }
+    
+    // Make service options clickable
+    serviceOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            const radio = this.querySelector('input[type="radio"]');
+            if (radio && !radio.disabled) {
+                radio.checked = true;
+                radio.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+    
+    // Add event listeners for address and weight changes to trigger pricing updates
+    const addressFields = ['collection_address', 'delivery_address'];
+    const weightField = document.getElementById('parcel_weight');
+    
+    addressFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('blur', function() {
+                // Debounce the pricing fetch
+                setTimeout(() => {
+                    if (document.getElementById('collection_address').value && 
+                        document.getElementById('delivery_address').value) {
+                        fetchPricing();
+                    }
+                }, 500);
+            });
+        }
+    });
+    
+    if (weightField) {
+        weightField.addEventListener('change', function() {
+            if (pricingLoaded) {
+                fetchPricing();
+            }
+        });
+    }
+    
+    // Get Rates Button functionality
+    const getRatesBtn = document.getElementById('get-rates-btn');
+    if (getRatesBtn) {
+        getRatesBtn.addEventListener('click', function() {
+            const pickupAddress = document.getElementById('collection_address').value;
+            const deliveryAddress = document.getElementById('delivery_address').value;
+            
+            if (!pickupAddress || !deliveryAddress) {
+                alert('Please enter both pickup and delivery addresses to get rates.');
+                return;
+            }
+            
+            openRatesModal();
+            fetchRatesForModal();
+        });
+    }
+    
+    // Modal functions moved outside DOMContentLoaded for global access
+    
+    function fetchRatesForModal() {
+        const pickupAddress = document.getElementById('collection_address').value;
+        const deliveryAddress = document.getElementById('delivery_address').value;
+        const parcelData = getCurrentParcelData();
+        
+        // Get provider from modal or default to courier_guy_geneway
+        let selectedProvider = 'courier_guy_geneway';
+        const providerRadio = document.querySelector('input[name="courier_provider"]:checked');
+        if (providerRadio) {
+            selectedProvider = providerRadio.value;
+        }
+        
+        const ratesContent = document.getElementById('rates-content');
+        ratesContent.innerHTML = `
+            <div class="loading-rates">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Fetching rates...</p>
+            </div>
+        `;
+        
+        fetch('/api/courier-pricing', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                pickup_address: pickupAddress,
+                delivery_address: deliveryAddress,
+                parcel_weight: parcelData.weight,
+                parcel_length: parcelData.length,
+                parcel_width: parcelData.width,
+                parcel_height: parcelData.height,
+                parcel_type: parcelData.type,
+                provider: selectedProvider
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Rates API response:', data);
+            if (data.success) {
+                console.log('Services received:', data.services);
+                displayRatesInModal(data.services);
+            } else {
+                console.log('API error:', data.error);
+                ratesContent.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Error: ${data.error}</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching rates:', error);
+            ratesContent.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Failed to load rates. Please try again.</p>
+                </div>
+            `;
+        });
+    }
+    
+    function displayRatesInModal(services) {
+        const ratesContent = document.getElementById('rates-content');
+        
+        if (services.length === 0) {
+            ratesContent.innerHTML = `
+                <div class="no-rates">
+                    <i class="fas fa-info-circle"></i>
+                    <p>No rates available for this route.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let ratesHtml = '';
+        services.forEach(service => {
+            const price = service.price > 0 ? `R ${service.price.toFixed(2)}` : 'Contact for Quote';
+            ratesHtml += `
+                <div class="rate-option" data-service-code="${service.code}" onclick="selectRateOption('${service.code}')">
+                    <div class="rate-header">
+                        <h4 class="rate-name">${service.name}</h4>
+                        <span class="rate-price">${price}</span>
+                    </div>
+                    <p class="rate-description">${service.description}</p>
+                </div>
+            `;
+        });
+        
+        ratesContent.innerHTML = ratesHtml;
+    }
+    
+    // Modal functions moved outside DOMContentLoaded for global access
+    
+    // Parcel selection handling
+    const parcelRadios = document.querySelectorAll('input[name="parcel_type"]');
+    const parcelCards = document.querySelectorAll('.parcel-card');
+    const customParcelToggle = document.getElementById('custom-parcel-toggle');
+    const customParcelFields = document.getElementById('custom-parcel-fields');
+    
+    // Handle parcel selection
+    parcelRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Update visual selection
+            parcelCards.forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            const selectedCard = document.querySelector(`[data-parcel-type="${this.value}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+            }
+            
+            // Update parcel weight in the form
+            const parcelInfo = parcelData[this.value];
+            if (parcelInfo) {
+                const weightField = document.getElementById('parcel_weight');
+                if (weightField) {
+                    weightField.value = parcelInfo.weight;
+                }
+            }
+            
+            // Disable custom fields if standard parcel selected
+            if (customParcelToggle) {
+                customParcelToggle.checked = false;
+                customParcelFields.style.display = 'none';
+            }
+        });
+    });
+    
+    // Make parcel cards clickable
+    parcelCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const radio = this.querySelector('input[type="radio"]');
+            if (radio) {
+                radio.checked = true;
+                radio.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+    
+    // Handle custom parcel toggle
+    if (customParcelToggle) {
+        customParcelToggle.addEventListener('change', function() {
+            if (this.checked) {
+                customParcelFields.style.display = 'block';
+                // Uncheck all standard parcel options
+                parcelRadios.forEach(radio => {
+                    radio.checked = false;
+                });
+                parcelCards.forEach(card => {
+                    card.classList.remove('selected');
+                });
+            } else {
+                customParcelFields.style.display = 'none';
+                // Re-check the first standard option
+                const firstRadio = document.querySelector('input[name="parcel_type"]');
+                if (firstRadio) {
+                    firstRadio.checked = true;
+                    firstRadio.dispatchEvent(new Event('change'));
+                }
+            }
+        });
+    }
+    
+    // Initialize with default selection
+    const defaultParcel = document.querySelector('input[name="parcel_type"]:checked');
+    if (defaultParcel) {
+        const defaultCard = document.querySelector(`[data-parcel-type="${defaultParcel.value}"]`);
+        if (defaultCard) {
+            defaultCard.classList.add('selected');
+        }
+        
+        // Set default weight
+        const parcelInfo = parcelData[defaultParcel.value];
+        if (parcelInfo) {
+            const weightField = document.getElementById('parcel_weight');
+            if (weightField) {
+                weightField.value = parcelInfo.weight;
+            }
+        }
+    }
+    
+    // Update fetchPricing to use selected parcel data
+    function getCurrentParcelData() {
+        const customToggle = document.getElementById('custom-parcel-toggle');
+        if (customToggle && customToggle.checked) {
+            // Use custom dimensions
+            return {
+                weight: parseFloat(document.getElementById('custom_weight').value) || 1.0,
+                length: parseFloat(document.getElementById('custom_length').value) || 0,
+                width: parseFloat(document.getElementById('custom_width').value) || 0,
+                height: parseFloat(document.getElementById('custom_height').value) || 0,
+                type: 'custom'
+            };
+        } else {
+            // Use selected standard parcel
+            const selectedParcel = document.querySelector('input[name="parcel_type"]:checked');
+            if (selectedParcel) {
+                const parcelInfo = parcelData[selectedParcel.value];
+                return {
+                    weight: parcelInfo.weight,
+                    length: parcelInfo.length,
+                    width: parcelInfo.width,
+                    height: parcelInfo.height,
+                    type: selectedParcel.value
+                };
+            }
+        }
+        return { weight: 1.0, length: 0, width: 0, height: 0, type: 'standard-flyer' };
+    }
+    
+    // Manual Address Toggle Functionality
+    const manualAddressToggle = document.getElementById('manual_address_toggle');
+    const manualAddressFields = document.getElementById('manual-address-fields');
+    
+    if (manualAddressToggle && manualAddressFields) {
+        manualAddressToggle.addEventListener('change', function() {
+            if (this.checked) {
+                manualAddressFields.style.display = 'block';
+                // Make manual fields required
+                const manualInputs = manualAddressFields.querySelectorAll('input, select');
+                manualInputs.forEach(input => {
+                    if (input.type !== 'text' || input.name === 'delivery_building') {
+                        input.required = true;
+                    }
+                });
+            } else {
+                manualAddressFields.style.display = 'none';
+                // Remove required from manual fields
+                const manualInputs = manualAddressFields.querySelectorAll('input, select');
+                manualInputs.forEach(input => {
+                    input.required = false;
+                });
+            }
+        });
+    }
+    
+    // Provider Modal Functions - Triggered by Book a Courier button
+    const providerModal = document.getElementById('providerModal');
+    
+    // Override the form submission to show provider selection first
+    const bookingForm = document.getElementById('delivery-form');
+    if (bookingForm) {
+        bookingForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            openProviderModal();
+        });
+    }
+    
+    // Provider modal function moved to global scope
+    
+    // Provider modal function moved to global scope
+    
+    // Provider modal function moved to global scope
+    
+    // Close modal when clicking outside
+    providerModal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeProviderModal();
+        }
+    });
+    
+    // Initial pricing fetch when page loads (if addresses are pre-filled)
+    setTimeout(() => {
+        if (document.getElementById('collection_address').value && 
+            document.getElementById('delivery_address').value) {
+            fetchPricing();
+        }
+    }, 1000);
+});
+
+// Global modal functions (outside DOMContentLoaded for onclick access)
+let selectedRate = null;
+
+function openProviderModal() {
+    const providerModal = document.getElementById('providerModal');
+    if (!providerModal) {
+        console.error('Provider modal not found!');
+        return;
+    }
+    providerModal.style.display = 'flex';
+    setTimeout(() => {
+        providerModal.classList.add('active');
+    }, 10);
+}
+
+function closeProviderModal() {
+    const providerModal = document.getElementById('providerModal');
+    if (!providerModal) {
+        console.error('Provider modal not found for closing!');
+        return;
+    }
+    providerModal.classList.remove('active');
+    setTimeout(() => {
+        providerModal.style.display = 'none';
+    }, 300);
+}
+
+function selectProvider() {
+    const selectedProvider = document.querySelector('input[name="courier_provider"]:checked');
+    if (selectedProvider) {
+        closeProviderModal();
+        
+        // Redirect to booking form with selected provider
+        const currentUrl = new URL(window.location);
+        currentUrl.searchParams.set('provider', selectedProvider.value);
+        window.location.href = currentUrl.toString();
+    }
+}
+
+function openRatesModal() {
+    console.log('Opening rates modal...');
+    const modal = document.getElementById('ratesModal');
+    if (!modal) {
+        console.error('Rates modal not found!');
+        return;
+    }
+    modal.style.display = 'flex';
+    setTimeout(() => {
+        modal.classList.add('active');
+    }, 10);
+    console.log('Rates modal opened');
+}
+
+function closeRatesModal() {
+    console.log('Closing rates modal...');
+    const modal = document.getElementById('ratesModal');
+    if (!modal) {
+        console.error('Rates modal not found for closing!');
+        return;
+    }
+    modal.classList.remove('active');
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 300);
+    console.log('Rates modal closed');
+}
+
+function selectRateOption(serviceCode) {
+    console.log('selectRateOption called with:', serviceCode);
+    
+    // Remove previous selection
+    document.querySelectorAll('.rate-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Add selection to clicked option
+    const selectedOption = document.querySelector(`[data-service-code="${serviceCode}"]`);
+    if (!selectedOption) {
+        console.error('Rate option not found:', serviceCode);
+        return;
+    }
+    selectedOption.classList.add('selected');
+    
+    // Enable select button
+    const selectBtn = document.getElementById('select-rate-btn');
+    if (selectBtn) {
+        selectBtn.disabled = false;
+        console.log('Select button enabled');
+    } else {
+        console.error('Select button not found');
+    }
+    
+    // Store selected rate
+    selectedRate = serviceCode;
+    console.log('Selected rate stored:', selectedRate);
+}
+
+function selectRate() {
+    console.log('selectRate called, selectedRate:', selectedRate);
+    if (!selectedRate) {
+        alert('Please select a rate first.');
+        return;
+    }
+    
+    // Get the selected service data
+    const selectedOption = document.querySelector(`[data-service-code="${selectedRate}"]`);
+    if (!selectedOption) {
+        console.error('Selected option not found:', selectedRate);
+        alert('Selected rate not found. Please try again.');
+        return;
+    }
+    
+    const serviceName = selectedOption.querySelector('.rate-name').textContent;
+    const servicePrice = selectedOption.querySelector('.rate-price').textContent;
+    
+    console.log('Selected service:', serviceName, servicePrice);
+    
+    // Update hidden form with selected service
+    const serviceTypeField = document.getElementById('selected_service_type');
+    const serviceCostField = document.getElementById('selected_service_cost');
+    
+    if (serviceTypeField) {
+        serviceTypeField.value = selectedRate;
+    }
+    if (serviceCostField) {
+        serviceCostField.value = servicePrice.replace('R ', '').replace(',', '');
+    }
+    
+    // Close modal
+    closeRatesModal();
+    
+    // Update the UI to show the selected service
+    updateSelectedServiceDisplay(serviceName, servicePrice);
+    
+    // Enable the Book Courier button
+    const bookCourierBtn = document.getElementById('book-courier-btn');
+    if (bookCourierBtn) {
+        bookCourierBtn.disabled = false;
+        bookCourierBtn.style.opacity = '1';
+        bookCourierBtn.style.cursor = 'pointer';
+    }
+}
+
+function updateSelectedServiceDisplay(serviceName, servicePrice) {
+    // Create or update a selected service display
+    let serviceDisplay = document.getElementById('selected-service-display');
+    if (!serviceDisplay) {
+        // Create the display element
+        serviceDisplay = document.createElement('div');
+        serviceDisplay.id = 'selected-service-display';
+        serviceDisplay.className = 'selected-service-display';
+        
+        // Insert it after the action buttons
+        const actionButtons = document.querySelector('.action-buttons-container');
+        if (actionButtons) {
+            actionButtons.insertAdjacentElement('afterend', serviceDisplay);
+        }
+    }
+    
+    // Update the content
+    serviceDisplay.innerHTML = `
+        <div class="selected-service-content">
+            <div class="selected-service-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="selected-service-info">
+                <h4>Service Selected</h4>
+                <p><strong>${serviceName}</strong> - ${servicePrice}</p>
+                <small>Ready to book courier service</small>
+            </div>
+        </div>
+    `;
+    
+    // Show the display with animation
+    serviceDisplay.style.display = 'block';
+    setTimeout(() => {
+        serviceDisplay.classList.add('show');
+    }, 100);
+}
+
+function finalizeBooking() {
+    // Check if a rate is selected
+    if (!selectedRate) {
+        alert('Please select a courier service first by clicking "Get Rates" and choosing a service.');
+        return;
+    }
+    
+    // Collect all form data
+    const formData = new FormData();
+    
+    // Helper function to safely get element value
+    function getElementValue(id) {
+        const element = document.getElementById(id);
+        return element ? element.value : '';
+    }
+    
+    // Collection details - map to backend expected field names
+    formData.append('collection_contact_name', getElementValue('collection_name') + ' ' + getElementValue('collection_surname'));
+    formData.append('collection_email', getElementValue('collection_company')); // Using company field for email
+    formData.append('collection_street', getElementValue('collection_address'));
+    formData.append('collection_suburb', getElementValue('collection_city'));
+    formData.append('collection_city', getElementValue('collection_city'));
+    formData.append('collection_province', 'Gauteng'); // Default province
+    formData.append('collection_postal_code', getElementValue('collection_postal_code'));
+    formData.append('collection_country_code', getElementValue('collection_country_code'));
+    formData.append('collection_mobile', getElementValue('collection_mobile'));
+    formData.append('collection_date', getElementValue('collection_date') || new Date().toISOString().split('T')[0]);
+    formData.append('collection_time', getElementValue('collection_time') || '09:00');
+    formData.append('collection_type', 'residential');
+    formData.append('collection_instructions', 'Please collect from reception');
+    formData.append('collection_building', getElementValue('collection_building') || '');
+    
+    // Delivery details - map to backend expected field names
+    formData.append('delivery_contact_name', getElementValue('delivery_name') + ' ' + getElementValue('delivery_surname'));
+    formData.append('delivery_email', getElementValue('delivery_company')); // Using company field for email
+    formData.append('delivery_street', getElementValue('delivery_address'));
+    formData.append('delivery_suburb', getElementValue('delivery_city'));
+    formData.append('delivery_city', getElementValue('delivery_city'));
+    formData.append('delivery_province', 'Gauteng'); // Default province
+    formData.append('delivery_postal_code', getElementValue('delivery_postal_code'));
+    formData.append('delivery_country_code', getElementValue('delivery_country_code'));
+    formData.append('delivery_mobile', getElementValue('delivery_mobile'));
+    formData.append('delivery_date', getElementValue('delivery_date') || new Date().toISOString().split('T')[0]);
+    formData.append('delivery_type', 'residential');
+    formData.append('delivery_instructions', 'Please deliver to reception');
+    formData.append('delivery_building', getElementValue('delivery_building') || '');
+    
+    // Parcel details
+    const selectedParcel = document.querySelector('input[name="parcel_type"]:checked');
+    if (selectedParcel) {
+        formData.append('parcel_type', selectedParcel.value);
+    } else {
+        formData.append('parcel_type', 'custom');
+    }
+    
+    // Default parcel dimensions (required by backend)
+    formData.append('parcel_length', '30');
+    formData.append('parcel_width', '20');
+    formData.append('parcel_height', '10');
+    formData.append('parcel_weight', '1.0');
+    
+    // Service details
+    const serviceTypeElement = document.getElementById('selected_service_type');
+    const serviceCostElement = document.getElementById('selected_service_cost');
+    formData.append('service_type', serviceTypeElement ? serviceTypeElement.value : 'LOF');
+    formData.append('service_cost', serviceCostElement ? serviceCostElement.value : '0.0');
+    
+    // Additional required fields - use actual field values if present
+    const customRefEl = document.getElementById('custom_tracking_ref');
+    const customerRefEl = document.getElementById('customer_reference');
+    const customRef = customRefEl ? (customRefEl.value || '') : '';
+    const customerRef = customerRefEl ? (customerRefEl.value || '') : '';
+    formData.append('custom_tracking_ref', customRef);
+    formData.append('customer_reference', customerRef);
+    
+    // Provider (from URL parameter)
+    const urlParams = new URLSearchParams(window.location.search);
+    const provider = urlParams.get('provider') || 'courier_guy_geneway';
+    formData.append('courier_provider', provider);
+    
+    // Debug: Log form data
+    console.log('Form data being sent:');
+    for (let [key, value] of formData.entries()) {
+        console.log(key + ': ' + value);
+    }
+    
+    // Show loading state
+    const bookBtn = document.getElementById('book-courier-btn');
+    const originalText = bookBtn.innerHTML;
+    bookBtn.innerHTML = `
+        <div class="btn-icon">
+            <i class="fas fa-spinner fa-spin"></i>
+        </div>
+        <div class="btn-content">
+            <span class="btn-title">Booking...</span>
+            <span class="btn-subtitle">Please wait</span>
+        </div>
+    `;
+    bookBtn.disabled = true;
+    
+    // Submit the booking
+    fetch(window.location.pathname, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'fetch' },
+        body: formData
+    })
+    .then(async response => {
+        const isJson = (response.headers.get('content-type') || '').includes('application/json');
+        const payload = isJson ? await response.json() : { success: response.ok };
+        if (!response.ok || !payload.success) {
+            const msg = (payload && payload.error) ? payload.error : 'Booking failed';
+            throw new Error(msg);
+        }
+        return payload;
+    })
+    .then(payload => {
+        console.log('Booking success:', payload);
+        // Redirect to provided URL or fallback to bookings page
+        const redirectUrl = payload.redirect_url || '/courier-bookings';
+        window.location.href = redirectUrl;
+    })
+    .catch(error => {
+        console.error('Booking error:', error);
+        alert('Failed to book courier service. Please check the form and try again.');
+        // Restore button
+        bookBtn.innerHTML = originalText;
+        bookBtn.disabled = false;
+    });
+}
+</script>
+{% endblock %}

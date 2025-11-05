@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .panel { background: transparent; }
+  .panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .panel-head h2 { margin:0; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width: 800px){ .grid { grid-template-columns: 1fr; } }
+  .card { border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:12px; }
+  .table { width:100%; border-collapse: collapse; }
+  .table th, .table td { padding:10px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align:left; }
+  .btn.small { padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); text-decoration:none; display:inline-block; }
+  input, textarea, select { width:100%; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color:inherit; }
+  label { display:block; font-size:0.9rem; margin-bottom:6px; }
+  .muted { opacity:.7; }
+</style>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Manage Barcodes — {{ item.name }}</h2>
+    <a class="btn small" href="{{ url_for('stock') }}">← Back to Stock</a>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3 style="margin-top:0;">Add One</h3>
+      <form method="post" action="{{ url_for('add_unit_one', item_id=item.id) }}">
+        <label>Barcode
+          <input name="barcode" placeholder="e.g. 1234567890" required>
+        </label>
+        <label>Batch #
+          <input name="batch_number" placeholder="e.g. BATCH-2025-08-01 (optional)">
+        </label>
+        <div class="grid">
+          <label>Expiry Date
+            <input name="expiry_date" type="date" value="{{ item.expiry_date or '' }}">
+          </label>
+          <label>Received Date
+            <input name="received_date" type="date" value="{{ item.received_date or '' }}">
+          </label>
+        </div>
+        <button class="btn small" type="submit">Add</button>
+</form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Add Bulk</h3>
+      <form method="post" action="{{ url_for('add_units_bulk', item_id=item.id) }}">
+        <label>Barcodes (one per line) — optional “, Batch#” per line
+          <textarea name="barcodes" rows="8" placeholder="ABC123, BATCH-01
+XYZ999, BATCH-02
+NO-BATCH-LINE"></textarea>
+        </label>
+        <label>Batch # (apply to all lines without a batch)
+          <input name="batch_number" placeholder="e.g. BATCH-DEFAULT (optional)">
+        </label>
+        <div class="grid">
+          <label>Expiry Date (applies to this item)
+            <input name="expiry_date" type="date" value="{{ item.expiry_date or '' }}">
+          </label>
+          <label>Received Date (applies to this item)
+            <input name="received_date" type="date" value="{{ item.received_date or '' }}">
+          </label>
+        </div>
+        <button class="btn small" type="submit">Add Bulk</button>
+</form>
+      <p class="muted" style="margin-top:8px;">Tip: use comma, tab, or | to separate <code>BARCODE</code> and <code>BATCH</code> per line.</p>
+    </div>
+  </div>
+
+  <!-- Sales Order PDFs Section -->
+  <div class="card" style="margin-top:16px;">
+    <h3 style="margin-top:0;">📄 Sales Order PDFs</h3>
+    
+    <!-- Upload Section -->
+    <div style="margin-bottom: 20px;">
+      <form id="uploadForm" enctype="multipart/form-data" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 250px;">
+          <input type="file" id="fileInput" name="file" accept=".pdf" style="display: none;">
+          <label for="fileInput" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; cursor: pointer; font-size: 14px; white-space: nowrap; margin: 0;">
+            <i class="fas fa-upload"></i> Choose File
+          </label>
+          <span id="fileName" style="color: rgba(255, 255, 255, 0.7); font-size: 14px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">No file chosen</span>
+        </div>
+        <button type="submit" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; white-space: nowrap;">
+          <i class="fas fa-cloud-upload-alt"></i> Upload PDF
+        </button>
+      </form>
+    </div>
+
+    <!-- PDFs Table -->
+    <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; overflow: hidden;">
+      <table class="table" style="margin: 0;">
+        <thead style="background: rgba(0, 0, 0, 0.3);">
+          <tr>
+            <th>Filename</th>
+            <th>Size</th>
+            <th>Uploaded By</th>
+            <th>Upload Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="pdfsTableBody">
+          {% for pdf in pdfs %}
+          <tr data-pdf-id="{{ pdf.id }}" style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+            <td style="display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-file-pdf" style="color: #ef4444; font-size: 16px;"></i>
+              <span style="font-weight: 500; color: #fff;">{{ pdf.filename }}</span>
+            </td>
+            <td style="color: rgba(255, 255, 255, 0.7); font-size: 14px; font-family: monospace;">{{ pdf.get_file_size_formatted() }}</td>
+            <td style="color: rgba(255, 255, 255, 0.8); font-size: 14px;">{{ pdf.uploaded_by }}</td>
+            <td style="color: rgba(255, 255, 255, 0.7); font-size: 14px; font-family: monospace;">{{ pdf.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td style="display: flex; gap: 6px; align-items: center;">
+              <button onclick="downloadPDF({{ pdf.id }})" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                <i class="fas fa-download"></i> Download
+              </button>
+              <button onclick="deletePDF({{ pdf.id }}, '{{ pdf.filename }}')" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                <i class="fas fa-trash"></i> Delete
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+          {% if not pdfs %}
+          <tr class="empty-row">
+            <td colspan="5" style="text-align: center; padding: 30px 16px; color: rgba(255, 255, 255, 0.6);">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                <i class="fas fa-inbox" style="font-size: 36px; opacity: 0.3; margin-bottom: 6px;"></i>
+                <p style="margin: 0; font-size: 16px; font-weight: 500; color: rgba(255, 255, 255, 0.8);">No PDFs uploaded yet</p>
+                <small style="font-size: 14px; opacity: 0.7;">Upload your first Sales Order PDF using the form above</small>
+              </div>
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <h3 style="margin-top:0;">Existing Units</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Barcode</th>
+          <th>Batch #</th>
+          <th>Status</th>
+          <th>Last Update</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in units %}
+        <tr>
+          <td>{{ u.barcode }}</td>
+          <td>{{ u.batch_number or '-' }}</td>
+          <td>{{ u.status }}</td>
+          <td>{{ u.last_update.strftime('%Y-%m-%d %H:%M') if u.last_update else '-' }}</td>
+          <td>
+            <form method="post" action="{{ url_for('delete_unit', unit_id=u.id) }}" class="js-confirm-form" data-confirm="Delete this unit?">
+              <button class="btn small" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="muted">No units yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); display: none; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(5px);">
+  <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05)); border: 1px solid rgba(255, 255, 255, 0.2); padding: 32px; border-radius: 16px; text-align: center; color: #fff; backdrop-filter: blur(20px);">
+    <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: #3b82f6; margin-bottom: 16px;"></i>
+    <p style="margin: 0; font-size: 16px;">Processing...</p>
+  </div>
+</div>
+
+<script>
+// Sales Order PDFs functionality
+document.addEventListener('DOMContentLoaded', function() {
+  // File input handling
+  const fileInput = document.getElementById('fileInput');
+  const fileName = document.getElementById('fileName');
+  
+  if (fileInput && fileName) {
+    fileInput.addEventListener('change', function(e) {
+      if (e.target.files.length > 0) {
+        fileName.textContent = e.target.files[0].name;
+        fileName.style.color = 'rgba(255, 255, 255, 0.9)';
+      } else {
+        fileName.textContent = 'No file chosen';
+        fileName.style.color = 'rgba(255, 255, 255, 0.7)';
+      }
+    });
+  }
+
+  // Upload form handling
+  const uploadForm = document.getElementById('uploadForm');
+  if (uploadForm) {
+    uploadForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const file = fileInput.files[0];
+      
+      if (!file) {
+        alert('Please select a PDF file to upload');
+        return;
+      }
+      
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        alert('Please select a PDF file');
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      const uploadBtn = uploadForm.querySelector('button[type="submit"]');
+      
+      try {
+        loadingOverlay.style.display = 'flex';
+        uploadBtn.disabled = true;
+        
+        const response = await fetch('/sales-order-pdfs/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // Reload the page to show the new PDF
+          window.location.reload();
+        } else {
+          alert('Upload failed: ' + result.error);
+        }
+      } catch (error) {
+        alert('Upload failed: ' + error.message);
+      } finally {
+        loadingOverlay.style.display = 'none';
+        uploadBtn.disabled = false;
+      }
+    });
+  }
+});
+
+// Download PDF
+function downloadPDF(pdfId) {
+  window.location.href = `/sales-order-pdfs/download/${pdfId}`;
+}
+
+// Delete PDF
+async function deletePDF(pdfId, filename) {
+  if (!confirm(`Are you sure you want to delete "${filename}"?`)) {
+    return;
+  }
+  
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  
+  try {
+    loadingOverlay.style.display = 'flex';
+    
+    const response = await fetch(`/sales-order-pdfs/delete/${pdfId}`, {
+      method: 'POST'
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Remove the row from the table
+      const row = document.querySelector(`tr[data-pdf-id="${pdfId}"]`);
+      if (row) {
+        row.remove();
+      }
+      
+      // If no more rows, show empty message
+      const tbody = document.getElementById('pdfsTableBody');
+      if (tbody && tbody.children.length === 0) {
+        tbody.innerHTML = `
+          <tr class="empty-row">
+            <td colspan="5" style="text-align: center; padding: 30px 16px; color: rgba(255, 255, 255, 0.6);">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                <i class="fas fa-inbox" style="font-size: 36px; opacity: 0.3; margin-bottom: 6px;"></i>
+                <p style="margin: 0; font-size: 16px; font-weight: 500; color: rgba(255, 255, 255, 0.8);">No PDFs uploaded yet</p>
+                <small style="font-size: 14px; opacity: 0.7;">Upload your first Sales Order PDF using the form above</small>
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+    } else {
+      alert('Delete failed: ' + result.error);
+    }
+  } catch (error) {
+    alert('Delete failed: ' + error.message);
+  } finally {
+    loadingOverlay.style.display = 'none';
+  }
+}
+</script>
+{% endblock %}

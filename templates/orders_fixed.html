@@ -1,0 +1,1145 @@
+{% extends "base.html" %}
+
+{% block title %}Orders Management - Life360 Dashboard{% endblock %}
+
+{% block content %}
+<div class="orders-container">
+    <!-- Header -->
+    <div class="orders-header">
+        <div class="orders-header-content">
+            <h1 class="orders-title">
+                <span class="orders-icon">📋</span>
+                Orders Management
+            </h1>
+            <p class="orders-subtitle">Track orders, manage workflow, and monitor completion status</p>
+        </div>
+        <div class="orders-actions">
+            <a href="{{ url_for('new_order_form') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create New Order
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="orders-stats">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ pending_orders_count if pending_orders_count is defined else 0 }}</div>
+                    <div class="stat-label">Pending Orders</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ completed_orders_count if completed_orders_count is defined else 0 }}</div>
+                    <div class="stat-label">Completed Orders</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ assigned_units_count if assigned_units_count is defined else 0 }}</div>
+                    <div class="stat-label">Assigned Units</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ required_units_count if required_units_count is defined else 0 }}</div>
+                    <div class="stat-label">Required Units</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Tabs -->
+    <div class="orders-tabs">
+        <div class="tab-navigation">
+            <button class="tab-btn active" data-tab="pending" onclick="switchTab('pending')">
+                <i class="fas fa-clock"></i> Pending Orders
+                <span class="tab-count">{{ pending_orders_count if pending_orders_count is defined else 0 }}</span>
+            </button>
+            <button class="tab-btn" data-tab="completed" onclick="switchTab('completed')">
+                <i class="fas fa-check-circle"></i> Completed Orders
+                <span class="tab-count">{{ completed_orders_count if completed_orders_count is defined else 0 }}</span>
+            </button>
+        </div>
+
+        <!-- Pending Orders Tab -->
+        <div class="tab-content active" id="pending-tab">
+            {% if buckets and buckets.pending %}
+                {% for provider, orders in buckets.pending.items() %}
+                    <div class="provider-section">
+                        <div class="provider-header">
+                            <div class="provider-info">
+                                <h3 class="provider-name">{{ provider }}</h3>
+                                <span class="provider-count">{{ orders|length }} orders</span>
+                            </div>
+                        </div>
+                        
+                        <div class="orders-grid">
+                            {% for order in orders %}
+                                <div class="order-card" data-order-id="{{ order.id }}">
+                                    <div class="order-header">
+                                        <div class="order-info">
+                                            <h4 class="order-name">{{ order.name }} {{ order.surname }}</h4>
+                                            <p class="order-date">{{ order.ordered_at.replace('T', ' ') }}</p>
+                                        </div>
+                                        <div class="order-status">
+                                            <span class="status-badge status-pending">{{ order.status }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="order-details">
+                                        <div class="detail-row">
+                                            <span class="detail-label">Assigned/Required:</span>
+                                            <span class="detail-value">{{ assigned.get(order.id, 0) }} / {{ required.get(order.id, 0) }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Time Left:</span>
+                                            <span class="countdown" id="cd-{{ order.id }}-pending" data-seconds-left="86400" data-complete="{{ 1 if order.sent_out else 0 }}">24:00:00</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="order-actions">
+                                        <button class="btn btn-secondary btn-sm" onclick="openSMS('', '{{ order.name }} {{ order.surname }}')">
+                                            <i class="fas fa-sms"></i> SMS
+                                        </button>
+                                        <button class="btn btn-primary btn-sm expand-btn" onclick="toggleOrderDetails('{{ order.id }}', 'pending')">
+                                            <i class="fas fa-chevron-down"></i> Details
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Order Details Panel -->
+                                    <div class="order-details-panel" id="details-{{ order.id }}-pending" style="display: none;">
+                                        <div class="details-content">
+                                            <div class="details-section">
+                                                <h5>Assign Barcodes</h5>
+                                                <form class="barcode-form" method="post" action="{{ url_for('assign_unit', order_id=order.id) }}">
+                                                    <div class="form-group">
+                                                        <input type="text" name="barcode" placeholder="Scan or enter barcode..." autofocus>
+                                                        <button class="btn btn-primary" type="submit">Assign</button>
+                                                    </div>
+                                                </form>
+                                                
+                                                <div class="assigned-units">
+                                                    <h6>Assigned Units</h6>
+                                                    {% for ou in (assigned_units.get(order.id, []) if assigned_units is mapping else (assigned_units | selectattr('order_id','equalto', order.id) | list)) %}
+                                                        <div class="unit-item">
+                                                            <span class="unit-barcode">{{ ou.unit.barcode }}</span>
+                                                            <span class="unit-status">{{ ou.unit.status }}</span>
+                                                            <form method="post" action="{{ url_for('unassign_unit', order_id=order.id, ou_id=ou.id) }}" style="display:inline">
+                                                                <button class="btn btn-sm btn-secondary" type="submit">Unassign</button>
+                                                            </form>
+                                                        </div>
+                                                    {% else %}
+                                                        <p class="no-units">No barcodes assigned yet.</p>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="details-section">
+                                                <h5>Workflow</h5>
+                                                <form method="post" action="{{ url_for('update_order', order_id=order.id) }}" class="workflow-form">
+                                                    <div class="workflow-checks">
+                                                        <label class="check-item">
+                                                            <input type="checkbox" name="sent_out" {% if order.sent_out %}checked{% endif %}>
+                                                            <span class="check-label">Sent out</span>
+                                                        </label>
+                                                        <label class="check-item">
+                                                            <input type="checkbox" name="received_back" {% if order.received_back %}checked{% endif %}>
+                                                            <span class="check-label">Received Back</span>
+                                                        </label>
+                                                        <label class="check-item">
+                                                            <input type="checkbox" name="kit_registered" {% if order.kit_registered %}checked{% endif %}>
+                                                            <span class="check-label">Kit Registered</span>
+                                                        </label>
+                                                        <label class="check-item">
+                                                            <input type="checkbox" name="results_sent" {% if order.results_sent %}checked{% endif %}>
+                                                            <span class="check-label">Results Sent</span>
+                                                        </label>
+                                                        <label class="check-item">
+                                                            <input type="checkbox" name="paid" {% if order.paid %}checked{% endif %}>
+                                                            <span class="check-label">Paid</span>
+                                                        </label>
+                                                        <label class="check-item">
+                                                            <input type="checkbox" name="invoiced" {% if order.invoiced %}checked{% endif %}>
+                                                            <span class="check-label">Invoiced</span>
+                                                        </label>
+                                                    </div>
+                                                    
+                                                    <div class="form-row">
+                                                        <div class="form-group">
+                                                            <label>Practitioner Name</label>
+                                                            <input type="text" name="practitioner_name" value="{{ order.practitioner_name }}">
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label>Status</label>
+                                                            <select name="status">
+                                                                <option value="Pending" {% if order.status=='Pending' %}selected{% endif %}>Pending</option>
+                                                                <option value="Completed" {% if order.status=='Completed' %}selected{% endif %}>Completed</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="form-group">
+                                                        <label>Notes</label>
+                                                        <textarea name="notes" rows="3">{{ order.notes }}</textarea>
+                                                    </div>
+                                                    
+                                                    <div class="form-actions">
+                                                        <button class="btn btn-primary" type="submit">Save Changes</button>
+                                                        <button class="btn btn-secondary" type="button" onclick="openSMS('', '{{ order.name }} {{ order.surname }}')">Send SMS</button>
+                                                    </div>
+                                                </form>
+                                                
+                                                <div class="call-logs">
+                                                    <h6>Call Logs</h6>
+                                                    {% for c in (call_logs.get(order.id, []) if call_logs is mapping else (call_logs | selectattr('order_id','equalto', order.id) | list)) %}
+                                                        <div class="log-item">
+                                                            <div class="log-header">
+                                                                <span class="log-author">{{ c.author or 'Staff' }}</span>
+                                                                <span class="log-date">{{ c.when }}</span>
+                                                            </div>
+                                                            <div class="log-outcome">{{ c.outcome or '—' }}</div>
+                                                            <div class="log-summary">{{ c.summary }}</div>
+                                                        </div>
+                                                    {% else %}
+                                                        <p class="no-logs">No call logs yet.</p>
+                                                    {% endfor %}
+                                                    
+                                                    <form class="log-form" method="post" action="{{ url_for('add_calllog', order_id=order.id) }}">
+                                                        <div class="form-row">
+                                                            <div class="form-group">
+                                                                <label>Author</label>
+                                                                <input name="author" placeholder="Your name">
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label>Outcome</label>
+                                                                <select name="outcome">
+                                                                    <option value="">—</option>
+                                                                    <option>Spoke</option>
+                                                                    <option>No Answer</option>
+                                                                    <option>Left VM</option>
+                                                                    <option>Emailed</option>
+                                                                    <option>Escalated</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label>Summary</label>
+                                                            <textarea name="summary" rows="3"></textarea>
+                                                        </div>
+                                                        <button class="btn btn-primary btn-sm" type="submit">Add Call Log</button>
+                                                    </form>
+                                                </div>
+                                                
+                                                <div class="order-items">
+                                                    <h6>Order Items</h6>
+                                                    {% for it in (order['items'] | default([])) %}
+                                                        <div class="item-row">
+                                                            <span class="item-sku">{{ it.sku }}</span>
+                                                            <span class="item-qty">× {{ it.qty }}</span>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                                
+                                                <div class="danger-zone">
+                                                    <form method="post" action="{{ url_for('delete_order', order_id=order.id) }}" class="delete-form">
+                                                        <button class="btn btn-danger btn-sm" type="submit" onclick="return confirm('Delete this order and unassign its barcodes?')">
+                                                            <i class="fas fa-trash"></i> Delete Order
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <h4>No pending orders</h4>
+                    <p>All orders have been completed or no orders have been created yet.</p>
+                    <a href="{{ url_for('new_order_form') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create First Order
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Completed Orders Tab -->
+        <div class="tab-content" id="completed-tab">
+            {% if buckets and buckets.completed %}
+                {% for provider, orders in buckets.completed.items() %}
+                    <div class="provider-section">
+                        <div class="provider-header">
+                            <div class="provider-info">
+                                <h3 class="provider-name">{{ provider }}</h3>
+                                <span class="provider-count">{{ orders|length }} orders</span>
+                            </div>
+                        </div>
+                        
+                        <div class="orders-grid">
+                            {% for order in orders %}
+                                <div class="order-card completed" data-order-id="{{ order.id }}">
+                                    <div class="order-header">
+                                        <div class="order-info">
+                                            <h4 class="order-name">{{ order.name }} {{ order.surname }}</h4>
+                                            <p class="order-date">{{ order.ordered_at.replace('T', ' ') }}</p>
+                                        </div>
+                                        <div class="order-status">
+                                            <span class="status-badge status-completed">{{ order.status }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="order-details">
+                                        <div class="detail-row">
+                                            <span class="detail-label">Assigned/Required:</span>
+                                            <span class="detail-value">{{ assigned.get(order.id, 0) }} / {{ required.get(order.id, 0) }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Completed:</span>
+                                            <span class="detail-value completed">✓ Completed</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="order-actions">
+                                        <button class="btn btn-secondary btn-sm" onclick="openSMS('', '{{ order.name }} {{ order.surname }}')">
+                                            <i class="fas fa-sms"></i> SMS
+                                        </button>
+                                        <button class="btn btn-primary btn-sm expand-btn" onclick="toggleOrderDetails('{{ order.id }}', 'completed')">
+                                            <i class="fas fa-chevron-down"></i> Details
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Order Details Panel -->
+                                    <div class="order-details-panel" id="details-{{ order.id }}-completed" style="display: none;">
+                                        <div class="details-content">
+                                            <div class="details-section">
+                                                <h5>Order Summary</h5>
+                                                <p>This order has been completed. All workflow steps have been finished.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">✅</div>
+                    <h4>No completed orders</h4>
+                    <p>Complete some orders to see them listed here.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* Orders Page Styles */
+.orders-container {
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* Header Styles */
+.orders-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.orders-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.orders-icon {
+    font-size: 2.2rem;
+    filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));
+}
+
+.orders-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+    margin: 8px 0 0 0;
+    font-weight: 400;
+}
+
+.orders-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* Stats Section */
+.orders-stats {
+    margin-bottom: 30px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Tabs */
+.orders-tabs {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.tab-navigation {
+    display: flex;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 20px 24px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.tab-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn.active {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+}
+
+.tab-count {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.tab-btn.active .tab-count {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+}
+
+.tab-content {
+    display: none;
+    padding: 24px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Provider Sections */
+.provider-section {
+    margin-bottom: 30px;
+}
+
+.provider-header {
+    padding: 20px 24px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px 16px 0 0;
+}
+
+.provider-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.provider-name {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+}
+
+.provider-count {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* Orders Grid */
+.orders-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 20px;
+    padding: 24px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+    border-radius: 0 0 16px 16px;
+}
+
+/* Order Cards */
+.order-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.order-card.completed {
+    border-color: rgba(16, 185, 129, 0.3);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.02));
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.order-info h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 4px 0;
+}
+
+.order-date {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-pending {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-completed {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.order-details {
+    margin-bottom: 16px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.detail-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+.detail-value {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.detail-value.completed {
+    color: #10b981;
+}
+
+.countdown {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-family: monospace;
+    font-weight: 600;
+}
+
+.order-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+/* Button Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+}
+
+.btn-sm {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+}
+
+/* Order Details Panel */
+.order-details-panel {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.details-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.details-section {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.details-section h5 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 16px 0;
+}
+
+.details-section h6 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 16px 0 12px 0;
+}
+
+/* Form Styles */
+.barcode-form {
+    margin-bottom: 20px;
+}
+
+.form-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.form-group input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-size: 0.95rem;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.form-row .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-row label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.form-row input,
+.form-row select,
+.form-row textarea {
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-size: 0.95rem;
+}
+
+.form-row textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+/* Workflow Checks */
+.workflow-checks {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.check-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #3b82f6;
+}
+
+.check-label {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Assigned Units */
+.assigned-units {
+    margin-top: 16px;
+}
+
+.unit-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.unit-barcode {
+    font-family: monospace;
+    font-weight: 600;
+    color: #3b82f6;
+}
+
+.unit-status {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.no-units {
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+    margin: 0;
+}
+
+/* Call Logs */
+.call-logs {
+    margin-top: 20px;
+}
+
+.log-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.log-author {
+    font-weight: 600;
+    color: #fff;
+}
+
+.log-date {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+}
+
+.log-outcome {
+    color: #3b82f6;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.log-summary {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+}
+
+.no-logs {
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+    margin: 0;
+}
+
+.log-form {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Order Items */
+.order-items {
+    margin-top: 20px;
+}
+
+.item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.item-sku {
+    font-weight: 600;
+    color: #fff;
+}
+
+.item-qty {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Danger Zone */
+.danger-zone {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h4 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 12px 0;
+}
+
+.empty-state p {
+    font-size: 1rem;
+    margin: 0 0 24px 0;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .orders-container {
+        padding: 16px;
+    }
+    
+    .orders-header {
+        flex-direction: column;
+        gap: 20px;
+        align-items: flex-start;
+    }
+    
+    .orders-title {
+        font-size: 2rem;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .tab-navigation {
+        flex-direction: column;
+    }
+    
+    .orders-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .details-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .workflow-checks {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+// Tab switching functionality
+function switchTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+}
+
+// Order details toggle
+function toggleOrderDetails(orderId, tab) {
+    const panel = document.getElementById(`details-${orderId}-${tab}`);
+    const btn = document.querySelector(`[onclick="toggleOrderDetails('${orderId}', '${tab}')"]`);
+    
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        btn.innerHTML = '<i class="fas fa-chevron-up"></i> Hide Details';
+    } else {
+        panel.style.display = 'none';
+        btn.innerHTML = '<i class="fas fa-chevron-down"></i> Details';
+    }
+}
+
+// Auto-submit workflow forms
+document.addEventListener('change', function(e) {
+    if (e.target.closest('.workflow-form')) {
+        const form = e.target.closest('.workflow-form');
+        
+        // Check if all workflow flags are checked
+        const flags = ['sent_out', 'received_back', 'kit_registered', 'results_sent', 'paid', 'invoiced'];
+        const allChecked = flags.every(name => {
+            const checkbox = form.querySelector(`input[name="${name}"]`);
+            return checkbox && checkbox.checked;
+        });
+        
+        if (allChecked) {
+            const statusSelect = form.querySelector('select[name="status"]');
+            if (statusSelect) {
+                statusSelect.value = 'Completed';
+            }
+        }
+        
+        // Auto-submit the form
+        form.submit();
+    }
+});
+
+// SMS functionality (placeholder)
+function openSMS(phone, name) {
+    alert(`SMS functionality for ${name} would open here.`);
+}
+
+// Countdown timer functionality
+function updateCountdowns() {
+    document.querySelectorAll('.countdown').forEach(element => {
+        if (element.dataset.complete === '1') {
+            element.textContent = 'Completed';
+            element.style.color = '#10b981';
+            return;
+        }
+        
+        let seconds = parseInt(element.dataset.secondsLeft || '86400', 10);
+        if (seconds <= 0) {
+            element.textContent = 'Expired';
+            element.style.color = '#ef4444';
+            return;
+        }
+        
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        
+        element.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        element.style.color = '';
+        
+        element.dataset.secondsLeft = (seconds - 1).toString();
+    });
+}
+
+// Initialize countdown timers
+document.addEventListener('DOMContentLoaded', function() {
+    updateCountdowns();
+    setInterval(updateCountdowns, 1000);
+    
+    // Check URL for tab parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    if (tab && (tab === 'pending' || tab === 'completed')) {
+        switchTab(tab);
+    }
+});
+</script>
+{% endblock %}
