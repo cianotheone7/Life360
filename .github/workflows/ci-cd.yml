@@ -151,11 +151,17 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     
+    - name: Create deployment package
+      run: |
+        echo "Creating deployment package..."
+        zip -r deploy.zip . -x "*.git*" -x "*.github*" -x "*__pycache__*" -x "*.db" -x "*.log" -x "*.pyc" -x "instance/*" -x "home/*" -x "uploads/*"
+        echo "Package created!"
+    
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v3
       with:
         app-name: life360-2578617155-app
-        package: .
+        package: deploy.zip
     
     - name: Configure startup command
       run: |
