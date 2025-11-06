@@ -151,21 +151,20 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     
-    - name: Deploy to Azure App Service
-      run: |
-        az webapp up \
-          --resource-group life360-2578617155 \
-          --plan life360-2578617155-plan \
-          --name life360-2578617155-app \
-          --runtime "PYTHON:3.12" \
-          --logs
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: life360-2578617155-app
+        package: .
     
     - name: Configure startup command
       run: |
+        echo "Configuring startup command..."
         az webapp config set \
           --resource-group life360-2578617155 \
           --name life360-2578617155-app \
           --startup-file "gunicorn --bind=0.0.0.0:8000 --timeout 600 --workers 2 wsgi:app"
+        echo "Startup command configured!"
     
     - name: Run smoke tests
       run: |
