@@ -46,3 +46,6 @@ uploads/*
 # Postman collections (may contain secrets)
 *.postman_collection.json
 
+# Azure credentials (should be in GitHub Secrets, not committed)
+azure_credentials.json
+
