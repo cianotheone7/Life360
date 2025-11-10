@@ -1118,13 +1118,14 @@ def create_item():
                 req_dt = datetime.strptime(req_dt_str, "%Y-%m-%dT%H:%M")
             except (ValueError, AttributeError):
                 req_dt = None
-    current_stock = int(request.form.get("current_stock", 0) or 0)
     provider = normalize_provider(request.form.get("provider")) or "Unassigned"
+    batch_number = (request.form.get("batch_number") or "").strip() or None
 
     if not name:
         flash("Name is required.", "error")
         return redirect(url_for("new_item"))
 
+    # Create the stock item
     item = StockItem(
         name=name,
         expiry_date=expiry,
@@ -1132,11 +1133,67 @@ def create_item():
         code_type=code_type,
         person_requested=person_requested,
         request_datetime=req_dt,
-        current_stock=current_stock,
+        current_stock=0,  # Will be set based on barcodes added
         provider=provider,
     )
-    db.session.add(item); db.session.commit()
-    flash("Stock item added.", "success")
+    db.session.add(item)
+    db.session.flush()  # Get the ID
+    
+    # Process barcodes
+    barcodes_text = request.form.get("barcodes", "").strip()
+    barcodes_added = 0
+    barcodes_skipped = 0
+    
+    if barcodes_text:
+        # Parse barcodes - support both newline and comma separated
+        barcode_list = []
+        for line in barcodes_text.split('\n'):
+            line = line.strip()
+            if ',' in line:
+                # Comma-separated values
+                barcode_list.extend([b.strip() for b in line.split(',') if b.strip()])
+            elif line:
+                # Single barcode per line
+                barcode_list.append(line)
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_barcodes = []
+        for barcode in barcode_list:
+            if barcode and barcode not in seen:
+                seen.add(barcode)
+                unique_barcodes.append(barcode)
+        
+        # Add stock units for each barcode
+        for barcode in unique_barcodes:
+            # Check if barcode already exists
+            existing_unit = StockUnit.query.filter_by(barcode=barcode).first()
+            if existing_unit:
+                barcodes_skipped += 1
+                continue
+            
+            unit = StockUnit(
+                barcode=barcode,
+                batch_number=batch_number,
+                status="In Stock",
+                item_id=item.id,
+                last_update=datetime.utcnow()
+            )
+            db.session.add(unit)
+            barcodes_added += 1
+        
+        # Update current_stock count
+        item.current_stock = barcodes_added
+    
+    db.session.commit()
+    
+    if barcodes_added > 0:
+        flash(f"Stock item added with {barcodes_added} barcode(s).", "success")
+        if barcodes_skipped > 0:
+            flash(f"{barcodes_skipped} barcode(s) were skipped (already exist).", "warning")
+    else:
+        flash("Stock item added. No barcodes were added.", "success")
+    
     return redirect(url_for("stock"))
 
 @app.route("/item/<int:item_id>/units")

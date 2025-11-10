@@ -17,7 +17,6 @@
     </label>
     <label>Batch Number <input name="person_requested" type="text"></label>
     <label>Requested Date &amp; Time <input name="request_datetime" type="datetime-local"></label>
-    <label>Current Stock <input name="current_stock" type="number" value="0" min="0"></label>
     <label>Provider
       <select name="provider">
         {% for p in ['Healthy Me','Sam Wearables','Geneway','Optiway','Enbiosis','Intelligene','Umvuzo Fedhealth','Umvuzo Intelligene','Geko'] %}
@@ -25,6 +24,11 @@
         {% endfor %}
       </select>
     </label>
+    <label>Barcodes (one per line or comma-separated)
+      <textarea name="barcodes" rows="5" placeholder="Enter barcodes, one per line or separated by commas&#10;Example:&#10;BC000001&#10;BC000002&#10;BC000003"></textarea>
+      <small style="color: #999; display: block; margin-top: 4px;">Leave empty to create item without barcodes. You can add barcodes later.</small>
+    </label>
+    <label>Batch Number (optional) <input name="batch_number" type="text" placeholder="e.g., BATCH-2025-001"></label>
     <div class="actions"><button class="btn" type="submit">Add</button></div>
   </form>
 </section>
