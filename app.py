@@ -1216,7 +1216,7 @@ def create_item():
         # Support both field names: "barcode" and "shared_barcode"
         single_barcode = (request.form.get("shared_barcode") or request.form.get("barcode") or "").strip()
         # Support multiple possible field names for quantity
-        quantity_str = (request.form.get("quantity") or request.form.get("shared_quantity") or request.form.get("multi_quantity") or "").strip()
+        quantity_str = (request.form.get("shared_barcode_quantity") or request.form.get("quantity") or request.form.get("shared_quantity") or request.form.get("multi_quantity") or "").strip()
         
         app.logger.info(f"Barcode: '{single_barcode}', Quantity: '{quantity_str}'")
         
