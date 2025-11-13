@@ -1,48 +1,133 @@
 {% extends "base.html" %}
+
+{% block title %}Add Stock Item{% endblock %}
+
 {% block content %}
-<section class="panel">
-  <h2>Add Stock Item</h2>
-  <form class="form" method="post" action="{{ url_for('create_item') }}">
-    <label>Name <input name="name" type="text" required></label>
-    <label>Expiry Date <input name="expiry_date" type="date"></label>
-    <label>Received Date <input name="received_date" type="date"></label>
-    <label>Code Type
-      <select name="code_type">
-        <option value="Kit">Kit Code</option>
-        <option value="Swab">Swab Code</option>
-        <option value="Device">Device</option>
-              <option value="Supplement">Supplements</option>
-        <option value="Other">Other</option>
-      </select>
-    </label>
-    <label>Batch Number <input name="person_requested" type="text"></label>
-    <label>Requested Date &amp; Time <input name="request_datetime" type="datetime-local"></label>
-    <label>Provider
-      <select name="provider">
-        {% for p in ['Healthy Me','Sam Wearables','Geneway','Optiway','Enbiosis','Intelligene','Umvuzo Fedhealth','Umvuzo Intelligene','Geko'] %}
-          <option>{{ p }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>Barcodes (one per line or comma-separated)
-      <textarea name="barcodes" rows="5" placeholder="Enter barcodes, one per line or separated by commas&#10;Example:&#10;BC000001&#10;BC000002&#10;BC000003"></textarea>
-      <small style="color: #999; display: block; margin-top: 4px;">Leave empty to create item without barcodes. You can add barcodes later.</small>
-    </label>
-    <div class="multi-barcode-section" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px; margin-top: 16px;">
-      <h3 style="margin: 0 0 12px; font-size: 1rem;">Add multiple units with a shared barcode</h3>
-      <p style="margin: 0 0 12px; color: #999; font-size: 0.9rem;">Useful for supplements or products where each unit shares the same barcode.</p>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
-        <label>Shared Barcode
-          <input name="shared_barcode" type="text" placeholder="e.g., HM-MAGGLY-01">
-        </label>
-        <label>Quantity
-          <input name="shared_barcode_quantity" type="number" min="1" max="1000" placeholder="e.g., 24">
-        </label>
-      </div>
-      <small style="color: #999; display: block; margin-top: 4px;">If provided, this barcode will be duplicated for the quantity specified. Leave blank to skip.</small>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-white">Add Stock Item</h1>
+        <a href="{{ url_for('stock') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Stock List
+        </a>
     </div>
-    <label>Batch Number (optional) <input name="batch_number" type="text" placeholder="e.g., BATCH-2025-001"></label>
-    <div class="actions"><button class="btn" type="submit">Add</button></div>
-  </form>
-</section>
+
+    <div class="card bg-dark text-white">
+        <div class="card-body p-4">
+            <form action="{{ url_for('create_item') }}" method="post" onsubmit="console.log('Form submitting...'); return true;">
+                <div class="row">
+                    <!-- Left Column -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Item Name <span class="text-danger">*</span></label>
+                            <input type="text" id="name" name="name" class="form-control" placeholder="e.g., Geneway Kit" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="provider" class="form-label">Provider</label>
+                            <select id="provider" name="provider" class="form-select">
+                                <option value="Geneway" selected>Geneway</option>
+                                <option value="Optiway">Optiway</option>
+                                <option value="Enbiosis">Enbiosis</option>
+                                <option value="Intelligene">Intelligene</option>
+                                <option value="Healthy Me">Healthy Me</option>
+                                <option value="Geko">Geko</option>
+                                <option value="Reboot">Reboot</option>
+                                <option value="Wellness">Wellness</option>
+                                <option value="Gifts & Banners">Gifts & Banners</option>
+                                <option value="Unassigned">Unassigned</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="batch_number" class="form-label">Batch Number (optional)</label>
+                            <input type="text" id="batch_number" name="batch_number" class="form-control" placeholder="e.g., BATCH-2025-001">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="code_type" class="form-label">Code Type</label>
+                            <select id="code_type" name="code_type" class="form-select">
+                                <option value="Kit Code" selected>Kit Code</option>
+                                <option value="Supplement">Supplement</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="expiry_date" class="form-label">Expiry Date (optional)</label>
+                            <input type="date" id="expiry_date" name="expiry_date" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="received_date" class="form-label">Received Date (optional)</label>
+                            <input type="date" id="received_date" name="received_date" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="request_datetime" class="form-label">Requested Date & Time (optional)</label>
+                            <input type="datetime-local" id="request_datetime" name="request_datetime" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4 bg-secondary">
+
+                <!-- Barcode Section -->
+                <div class="row">
+                    <div class="col-12">
+                        <h4 class="text-primary mb-3">
+                            <i class="fas fa-barcode me-2"></i>Add Units (Barcodes)
+                        </h4>
+                        <p class="text-muted mb-4">Choose one of the two methods below to add units.</p>
+                        
+                        <!-- Option 1: Single Barcode + Quantity -->
+                        <div class="border border-primary rounded p-3 mb-3" style="background-color: rgba(13, 110, 253, 0.1);">
+                            <label class="form-label fw-bold">
+                                <span class="badge bg-primary me-2">Option 1</span>
+                                Add multiple units with the same barcode
+                            </label>
+                            <div class="row g-2 mt-2">
+                                <div class="col-md-8">
+                                    <input type="text" name="shared_barcode" class="form-control" placeholder="Enter a single barcode (e.g., GE001)">
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="number" name="shared_barcode_quantity" class="form-control" placeholder="Quantity" min="1">
+                                </div>
+                            </div>
+                            <small class="text-muted d-block mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Use this if you have many units that share the same barcode.
+                            </small>
+                        </div>
+
+                        <div class="text-center my-3">
+                            <span class="badge bg-secondary">OR</span>
+                        </div>
+
+                        <!-- Option 2: Manual Barcode Entry -->
+                        <div class="border border-secondary rounded p-3" style="background-color: rgba(108, 117, 125, 0.1);">
+                            <label for="barcodes" class="form-label fw-bold">
+                                <span class="badge bg-secondary me-2">Option 2</span>
+                                Enter barcodes manually (one per line)
+                            </label>
+                            <textarea id="barcodes" name="barcodes" class="form-control font-monospace" rows="6" placeholder="BC000001&#10;BC000002&#10;BC000003"></textarea>
+                            <small class="text-muted d-block mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Enter one barcode per line, or separate them with commas.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus me-2"></i>Add Stock Item
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
