@@ -1228,7 +1228,7 @@ def add_unit_one(item_id):
         item.expiry_date = expiry
     if received:
         item.received_date = received
-    u = StockUnit(barcode=barcode, batch_number=batch_number, item_id=item_id, status="In Stock", last_update=datetime.now(timezone.utc))
+    u = StockUnit(barcode=barcode, batch_number=batch_number, item_id=item_id, status="In Stock", last_update=datetime.utcnow())
     db.session.add(u); db.session.commit()
     flash(f"Added barcode {barcode}.", "success")
     return redirect(url_for("manage_units", item_id=item_id))
@@ -1258,7 +1258,7 @@ def add_units_bulk(item_id):
         batch_no = parts[1] if len(parts) > 1 else default_batch
         if StockUnit.query.filter_by(barcode=barcode).first():
             continue
-        db.session.add(StockUnit(barcode=barcode, batch_number=batch_no, item_id=item_id, status="In Stock", last_update=datetime.now(timezone.utc)))
+        db.session.add(StockUnit(barcode=barcode, batch_number=batch_no, item_id=item_id, status="In Stock", last_update=datetime.utcnow()))
         new_count += 1
     db.session.commit()
     flash(f"Added {new_count} barcodes.", "success")
@@ -1928,7 +1928,7 @@ def create_order():
                     for unit in available_units:
                         db.session.add(OrderUnit(order_id=o.id, unit_id=unit.id))
                         unit.status = "Assigned"
-                        unit.last_update = datetime.now(timezone.utc)
+                        unit.last_update = datetime.utcnow()
                 except (ValueError, TypeError) as e:
                     app.logger.error(f"Error assigning stock unit: {e}")
                     pass
@@ -2131,7 +2131,7 @@ def assign_unit(order_id):
 
     db.session.add(OrderUnit(order_id=order_id, unit_id=unit.id))
     unit.status = "Assigned"
-    unit.last_update = datetime.now(timezone.utc)
+    unit.last_update = datetime.utcnow()
     db.session.commit()
 
     flash(f"Assigned {barcode} to order #{order_id}.", "success")
@@ -2145,7 +2145,7 @@ def unassign_unit(order_id, ou_id):
     unit = ou.unit
     db.session.delete(ou)
     unit.status = "In Stock"
-    unit.last_update = datetime.now(timezone.utc)
+    unit.last_update = datetime.utcnow()
     db.session.commit()
     flash("Unassigned barcode.", "success")
     return redirect(url_for("orders") + f"#o{order_id}")
