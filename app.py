@@ -1298,9 +1298,13 @@ def create_item():
         return redirect(url_for("stock"))
         
     except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        app.logger.error(f"===== EXCEPTION in create_item =====")
+        app.logger.error(f"Error: {str(e)}")
+        app.logger.error(f"Traceback:\n{tb}")
         db.session.rollback()
-        app.logger.error(f"Error creating stock item: {e}")
-        flash(f"Error adding stock item: {str(e)}", "error")
+        flash(f"ERROR creating stock item: {str(e)}", "error")
         return redirect(url_for("new_item"))
 
 @app.route("/item/<int:item_id>/units")

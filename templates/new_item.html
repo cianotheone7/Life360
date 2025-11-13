@@ -2,7 +2,7 @@
 {% block content %}
 <section class="panel">
   <h2>Add Stock Item</h2>
-  <form class="form" method="post" action="{{ url_for('create_item') }}">
+  <form class="form" method="post" action="{{ url_for('create_item') }}" onsubmit="console.log('Form submitting'); console.log('Name:', this.name.value); console.log('Barcode:', this.shared_barcode.value); console.log('Qty:', this.shared_barcode_quantity.value); return true;">
     <label>Name <input name="name" type="text" required></label>
     <label>Expiry Date <input name="expiry_date" type="date"></label>
     <label>Received Date <input name="received_date" type="date"></label>
