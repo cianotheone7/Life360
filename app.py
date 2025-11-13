@@ -213,7 +213,7 @@ SCOPE = os.environ.get("AZURE_SCOPE", "User.Read")
 # Canonical provider list (include Reboot for new order form)
 PROVIDERS = [
     "Geneway", "Optiway", "Enbiosis", "Intelligene", "Healthy Me",
-    "Intelligene Fedhealth", "Geko", "Reboot",
+    "Intelligene Fedhealth", "Geko", "Reboot", "Gifts & Banners",
 ]
 
 # ---------------- Models ----------------
@@ -237,6 +237,18 @@ class StockUnit(db.Model):
     item_id = db.Column(db.Integer, db.ForeignKey('stock_item.id'), nullable=False)
     item = db.relationship("StockItem", backref=db.backref("units", lazy="dynamic"))
     last_update = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Promotional use tracking
+    promotional_use = db.Column(db.Boolean, default=False)  # Signed out for promotional use
+    signed_out_by = db.Column(db.String(120), nullable=True)  # Staff member name
+    signed_out_date = db.Column(db.DateTime, nullable=True)  # When it was signed out
+    promotional_notes = db.Column(db.Text, nullable=True)  # Notes about promotional use
+    
+    # Return tracking
+    returned = db.Column(db.Boolean, default=False)  # Has been returned
+    returned_by = db.Column(db.String(120), nullable=True)  # Who returned it
+    returned_date = db.Column(db.DateTime, nullable=True)  # When it was returned
+    return_reason = db.Column(db.Text, nullable=True)  # Why it was returned (e.g., "Not sold at event")
 
 class OrderUnit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -281,6 +293,13 @@ class Order(db.Model):
     
     # Raw API data storage for detailed view
     raw_api_data = db.Column(db.Text, nullable=True)  # Store complete API response as JSON
+    
+    # Payment tracking fields
+    pop_received = db.Column(db.Boolean, default=False)  # Proof of Payment received
+    payment_received = db.Column(db.Boolean, default=False)  # Payment received (required before lab submission)
+    awaiting_payment = db.Column(db.Boolean, default=False)  # Awaiting payment
+    payment_notes = db.Column(db.Text, nullable=True)  # Payment-related notes
+    payment_date = db.Column(db.DateTime, nullable=True)  # Date payment was received
     
     items = db.relationship("OrderItem", backref="order", cascade="all, delete-orphan", lazy=True)
 
@@ -417,6 +436,40 @@ class CourierUpdate(db.Model):
     
     # Relationship
     booking = db.relationship('CourierBooking', backref='updates')
+
+class PromotionalItem(db.Model):
+    """Model for tracking promotional items, gifts, banners, and gazebos"""
+    __tablename__ = 'promotional_item'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)  # Item name
+    category = db.Column(db.String(50), nullable=False)  # Gift, Banner, Gazebo, etc.
+    description = db.Column(db.Text, nullable=True)  # Item description
+    quantity = db.Column(db.Integer, nullable=False, default=1)  # Total quantity
+    available_quantity = db.Column(db.Integer, nullable=False, default=1)  # Available quantity
+    
+    # Tracking fields
+    location = db.Column(db.String(200), nullable=True)  # Where it's stored
+    condition = db.Column(db.String(50), nullable=True)  # New, Good, Fair, Poor
+    purchase_date = db.Column(db.Date, nullable=True)  # When it was purchased
+    cost = db.Column(db.Float, nullable=True)  # Purchase cost
+    
+    # Signed out tracking
+    signed_out = db.Column(db.Boolean, default=False)  # Currently signed out
+    signed_out_by = db.Column(db.String(120), nullable=True)  # Staff member name
+    signed_out_date = db.Column(db.DateTime, nullable=True)  # When signed out
+    expected_return_date = db.Column(db.Date, nullable=True)  # Expected return date
+    sign_out_notes = db.Column(db.Text, nullable=True)  # Purpose/notes
+    
+    # Return tracking
+    last_returned_date = db.Column(db.DateTime, nullable=True)  # Last return date
+    last_returned_by = db.Column(db.String(120), nullable=True)  # Who returned it last
+    return_notes = db.Column(db.Text, nullable=True)  # Return notes
+    
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    notes = db.Column(db.Text, nullable=True)  # General notes
 
 # ---------------- Dummy Data ----------------
 PRACTITIONERS = []
@@ -1094,132 +1147,151 @@ def new_item():
     return render_template("new_item.html", user=user)
 
 @app.post("/items")
-
 def create_item():
-    # Normalize and validate incoming fields
-    name = (request.form.get("name") or "").strip()
-    expiry = parse_date(request.form.get("expiry_date"))
-    received = parse_date(request.form.get("received_date"))
-    code_type = (request.form.get("code_type") or "Kit").strip()
-    # Normalize plural vs singular to fit legacy DBs with VARCHAR(10)
-    if code_type.lower().startswith("supplement"):
-        code_type = "Supplement"  # 10 chars
-    if len(code_type) > 20:
-        flash("Code Type is too long (max 20).", "error")
-        return redirect(url_for("new_item"))
-    person_requested = (request.form.get("person_requested") or None)
-    req_dt_str = request.form.get("request_datetime")
-    req_dt = None
-    if req_dt_str:
-        try:
-            req_dt = datetime.fromisoformat(req_dt_str.replace('Z', '+00:00'))
-        except (ValueError, AttributeError):
+    try:
+        # Log form data for debugging
+        app.logger.info(f"Create item called - Form data: {dict(request.form)}")
+        
+        # Normalize and validate incoming fields
+        name = (request.form.get("name") or "").strip()
+        expiry = parse_date(request.form.get("expiry_date"))
+        received = parse_date(request.form.get("received_date"))
+        code_type = (request.form.get("code_type") or "Kit").strip()
+        # Normalize plural vs singular to fit legacy DBs with VARCHAR(10)
+        if code_type.lower().startswith("supplement"):
+            code_type = "Supplement"  # 10 chars
+        if len(code_type) > 20:
+            flash("Code Type is too long (max 20).", "error")
+            return redirect(url_for("new_item"))
+        person_requested = (request.form.get("person_requested") or None)
+        req_dt_str = request.form.get("request_datetime")
+        req_dt = None
+        if req_dt_str:
             try:
+                # Parse and convert to naive datetime (remove timezone info)
                 req_dt = datetime.strptime(req_dt_str, "%Y-%m-%dT%H:%M")
             except (ValueError, AttributeError):
-                req_dt = None
-    provider = normalize_provider(request.form.get("provider")) or "Unassigned"
-    batch_number = (request.form.get("batch_number") or "").strip() or None
+                try:
+                    # Try ISO format but remove timezone
+                    parsed = datetime.fromisoformat(req_dt_str.replace('Z', '+00:00'))
+                    req_dt = parsed.replace(tzinfo=None)
+                except (ValueError, AttributeError):
+                    req_dt = None
+        provider = normalize_provider(request.form.get("provider")) or "Unassigned"
+        batch_number = (request.form.get("batch_number") or "").strip() or None
 
-    if not name:
-        flash("Name is required.", "error")
-        return redirect(url_for("new_item"))
+        if not name:
+            flash("Name is required.", "error")
+            return redirect(url_for("new_item"))
 
-    # Create the stock item
-    item = StockItem(
-        name=name,
-        expiry_date=expiry,
-        received_date=received,
-        code_type=code_type,
-        person_requested=person_requested,
-        request_datetime=req_dt,
-        current_stock=0,  # Will be set based on barcodes added
-        provider=provider,
-    )
-    db.session.add(item)
-    db.session.flush()  # Get the ID
-    
-    # Process barcodes
-    barcodes_text = request.form.get("barcodes", "").strip()
-    barcodes_added = 0
-    barcodes_skipped = 0
-    seen_input_barcodes = set()
-    unique_barcodes = []
-    
-    if barcodes_text:
-        # Parse barcodes - support both newline and comma separated
-        for line in barcodes_text.split('\n'):
-            line = line.strip()
-            if ',' in line:
-                # Comma-separated values
-                for part in line.split(','):
-                    part = part.strip()
-                    if part and part not in seen_input_barcodes:
-                        unique_barcodes.append(part)
-                        seen_input_barcodes.add(part)
-            elif line and line not in seen_input_barcodes:
-                # Single barcode per line
-                unique_barcodes.append(line)
-                seen_input_barcodes.add(line)
-    
-    # Track the final set to avoid duplicates across free-text and shared barcode inputs
-    all_new_barcodes = set()
-    
-    # Add stock units for each explicit barcode provided
-    for barcode in unique_barcodes:
-        if not barcode:
-            continue
-        # Only skip if we've already added this barcode in this same submission
-        if barcode in all_new_barcodes:
-            barcodes_skipped += 1
-            continue
-        unit = StockUnit(
-            barcode=barcode,
-            batch_number=batch_number,
-            status="In Stock",
-            item_id=item.id,
-            last_update=datetime.utcnow()
+        # Create the stock item
+        item = StockItem(
+            name=name,
+            expiry_date=expiry,
+            received_date=received,
+            code_type=code_type,
+            person_requested=person_requested,
+            request_datetime=req_dt,
+            current_stock=0,  # Will be set based on barcodes added
+            provider=provider,
         )
-        db.session.add(unit)
-        barcodes_added += 1
-        all_new_barcodes.add(barcode)
-    
-    # Optionally duplicate a shared barcode for a quantity of units
-    shared_barcode = (request.form.get("shared_barcode") or "").strip()
-    shared_qty_raw = request.form.get("shared_barcode_quantity")
-    try:
-        shared_qty = int(shared_qty_raw) if shared_qty_raw is not None else 0
-    except ValueError:
-        shared_qty = 0
-    if shared_barcode and shared_qty > 0:
-        if shared_qty > 1000:
-            shared_qty = 1000
-            flash("Quantity capped at 1000 units per submission.", "warning")
-        # Create multiple units with the exact same barcode
-        for _ in range(shared_qty):
-            unit = StockUnit(
-                barcode=shared_barcode,
-                batch_number=batch_number,
-                status="In Stock",
-                item_id=item.id,
-                last_update=datetime.utcnow()
-            )
-            db.session.add(unit)
-            barcodes_added += 1
-    
-    # Update current_stock count
-    item.current_stock = barcodes_added
-    
-    db.session.commit()
-    
-    if barcodes_added > 0:
-        flash(f"Stock item added with {barcodes_added} barcode(s).", "success")
-        if barcodes_skipped > 0:
-            flash(f"{barcodes_skipped} barcode(s) were skipped (already exist).", "warning")
-    else:
-        flash("Stock item added. No barcodes were added.", "success")
-    
-    return redirect(url_for("stock"))
+        db.session.add(item)
+        db.session.flush()  # Get the ID
+        
+        app.logger.info(f"Stock item created with ID: {item.id}")
+        
+        # Process barcodes
+        barcodes_added = 0
+        barcode_list = []
+        
+        # Option 1: Single barcode + quantity
+        single_barcode = request.form.get("barcode", "").strip()
+        quantity_str = request.form.get("quantity", "").strip()
+        
+        app.logger.info(f"Barcode: '{single_barcode}', Quantity: '{quantity_str}'")
+        
+        # Check if user is using Option 1 (BOTH fields must be filled)
+        if single_barcode and quantity_str:
+            try:
+                quantity = int(quantity_str)
+                app.logger.info(f"Parsed quantity: {quantity}")
+                
+                if quantity <= 0:
+                    flash("Quantity must be greater than 0.", "error")
+                    db.session.rollback()
+                    return redirect(url_for("new_item"))
+                    
+                # Add the same barcode multiple times
+                for i in range(quantity):
+                    barcode_list.append(single_barcode)
+                    
+                app.logger.info(f"Created barcode_list with {len(barcode_list)} items")
+            except (ValueError, TypeError) as e:
+                app.logger.error(f"Quantity parsing error: {e}")
+                flash("Invalid quantity. Please enter a whole number.", "error")
+                db.session.rollback()
+                return redirect(url_for("new_item"))
+        # Check if only one field is filled (incomplete Option 1)
+        elif single_barcode or quantity_str:
+            if not single_barcode:
+                flash("Please enter a barcode for Option 1, or use Option 2 instead.", "error")
+                db.session.rollback()
+                return redirect(url_for("new_item"))
+            if not quantity_str:
+                flash("Please enter a quantity for Option 1, or use Option 2 instead.", "error")
+                db.session.rollback()
+                return redirect(url_for("new_item"))
+        else:
+            # Option 2: Manual barcode entry
+            barcodes_text = request.form.get("barcodes", "").strip()
+            app.logger.info(f"Manual barcodes text: '{barcodes_text}'")
+            if barcodes_text:
+                # Parse barcodes - support both newline and comma separated
+                for line in barcodes_text.split('\n'):
+                    line = line.strip()
+                    if ',' in line:
+                        # Comma-separated values
+                        barcode_list.extend([b.strip() for b in line.split(',') if b.strip()])
+                    elif line:
+                        # Single barcode per line
+                        barcode_list.append(line)
+        
+        # Add stock units for each barcode in the list
+        app.logger.info(f"Barcode list contains {len(barcode_list)} items")
+        
+        if barcode_list:
+            for barcode in barcode_list:
+                unit = StockUnit(
+                    barcode=barcode,
+                    batch_number=batch_number,
+                    status="In Stock",
+                    item_id=item.id,
+                    last_update=datetime.utcnow()
+                )
+                db.session.add(unit)
+                barcodes_added += 1
+                app.logger.info(f"Added unit {barcodes_added} with barcode: {barcode}")
+            
+            # Update current_stock count
+            item.current_stock = barcodes_added
+        
+        app.logger.info(f"Committing {barcodes_added} units to database")
+        db.session.commit()
+        app.logger.info("Commit successful!")
+        
+        if barcodes_added > 0:
+            flash(f"Stock item '{name}' added with {barcodes_added} unit(s).", "success")
+        else:
+            flash(f"Stock item '{name}' added. No units were added.", "success")
+        
+        app.logger.info(f"Redirecting to stock page")
+        return redirect(url_for("stock"))
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error creating stock item: {e}")
+        flash(f"Error adding stock item: {str(e)}", "error")
+        return redirect(url_for("new_item"))
 
 @app.route("/item/<int:item_id>/units")
 def manage_units(item_id):
@@ -1253,7 +1325,7 @@ def add_unit_one(item_id):
         item.expiry_date = expiry
     if received:
         item.received_date = received
-    u = StockUnit(barcode=barcode, batch_number=batch_number, item_id=item_id, status="In Stock", last_update=datetime.utcnow())
+    u = StockUnit(barcode=barcode, batch_number=batch_number, item_id=item_id, status="In Stock", last_update=datetime.now(timezone.utc))
     db.session.add(u); db.session.commit()
     flash(f"Added barcode {barcode}.", "success")
     return redirect(url_for("manage_units", item_id=item_id))
@@ -1283,7 +1355,7 @@ def add_units_bulk(item_id):
         batch_no = parts[1] if len(parts) > 1 else default_batch
         if StockUnit.query.filter_by(barcode=barcode).first():
             continue
-        db.session.add(StockUnit(barcode=barcode, batch_number=batch_no, item_id=item_id, status="In Stock", last_update=datetime.utcnow()))
+        db.session.add(StockUnit(barcode=barcode, batch_number=batch_no, item_id=item_id, status="In Stock", last_update=datetime.now(timezone.utc)))
         new_count += 1
     db.session.commit()
     flash(f"Added {new_count} barcodes.", "success")
@@ -1299,6 +1371,211 @@ def delete_unit(unit_id):
     db.session.delete(u); db.session.commit()
     flash("Unit deleted.", "success")
     return redirect(url_for("manage_units", item_id=item_id))
+
+@app.post("/units/<int:unit_id>/sign-out-promotional")
+def sign_out_promotional(unit_id):
+    """Sign out a stock unit for promotional use"""
+    u = StockUnit.query.get_or_404(unit_id)
+    
+    signed_out_by = (request.form.get("signed_out_by") or "").strip()
+    promotional_notes = (request.form.get("promotional_notes") or "").strip()
+    
+    if not signed_out_by or not promotional_notes:
+        flash("Please provide your name and purpose for promotional use.", "error")
+        return redirect(url_for("manage_units", item_id=u.item_id))
+    
+    u.promotional_use = True
+    u.signed_out_by = signed_out_by
+    u.signed_out_date = datetime.now()
+    u.promotional_notes = promotional_notes
+    u.status = "Promotional Use"
+    u.last_update = datetime.now()
+    
+    db.session.commit()
+    flash(f"✓ Barcode {u.barcode} signed out for promotional use by {signed_out_by}", "success")
+    return redirect(url_for("manage_units", item_id=u.item_id))
+
+@app.post("/units/<int:unit_id>/return-promotional")
+def return_promotional(unit_id):
+    """Return a promotional stock unit"""
+    u = StockUnit.query.get_or_404(unit_id)
+    
+    returned_by = (request.form.get("returned_by") or "").strip()
+    return_reason = (request.form.get("return_reason") or "").strip()
+    
+    if not returned_by or not return_reason:
+        flash("Please provide your name and condition notes.", "error")
+        return redirect(url_for("manage_units", item_id=u.item_id))
+    
+    u.returned = True
+    u.returned_by = returned_by
+    u.returned_date = datetime.now()
+    u.return_reason = return_reason
+    u.promotional_use = False
+    u.status = "In Stock"
+    u.last_update = datetime.now()
+    
+    db.session.commit()
+    flash(f"✓ Barcode {u.barcode} returned to stock by {returned_by}", "success")
+    return redirect(url_for("manage_units", item_id=u.item_id))
+
+# ---------------- Promotional Items (Gifts & Banners) ----------------
+
+@app.route("/promotional-items")
+def promotional_items():
+    """Display the Gifts & Banners management page"""
+    user = session.get("user")
+    items = PromotionalItem.query.order_by(PromotionalItem.id.desc()).all()
+    
+    # Calculate stats
+    total_items = len(items)
+    available_count = sum(1 for item in items if not item.signed_out and item.available_quantity > 0)
+    signed_out_count = sum(1 for item in items if item.signed_out)
+    total_value = sum(item.cost or 0 for item in items)
+    
+    return render_template(
+        "promotional_items.html",
+        user=user,
+        items=items,
+        total_items=total_items,
+        available_count=available_count,
+        signed_out_count=signed_out_count,
+        total_value=total_value
+    )
+
+@app.post("/promotional-items/add")
+def add_promotional_item():
+    """Add a new promotional item"""
+    name = (request.form.get("name") or "").strip()
+    category = (request.form.get("category") or "").strip()
+    
+    if not name or not category:
+        flash("Name and category are required.", "error")
+        return redirect(url_for("promotional_items"))
+    
+    item = PromotionalItem(
+        name=name,
+        category=category,
+        description=(request.form.get("description") or "").strip() or None,
+        quantity=int(request.form.get("quantity") or 1),
+        available_quantity=int(request.form.get("available_quantity") or request.form.get("quantity") or 1),
+        location=(request.form.get("location") or "").strip() or None,
+        condition=(request.form.get("condition") or "Good").strip(),
+        purchase_date=parse_date(request.form.get("purchase_date")),
+        cost=float(request.form.get("cost") or 0) if request.form.get("cost") else None,
+        notes=(request.form.get("notes") or "").strip() or None
+    )
+    
+    db.session.add(item)
+    db.session.commit()
+    flash(f"✓ Added promotional item: {name}", "success")
+    return redirect(url_for("promotional_items"))
+
+@app.get("/promotional-items/<int:item_id>/json")
+def get_promotional_item_json(item_id):
+    """Get promotional item data as JSON for editing"""
+    item = PromotionalItem.query.get_or_404(item_id)
+    return jsonify({
+        "name": item.name,
+        "category": item.category,
+        "description": item.description,
+        "quantity": item.quantity,
+        "available_quantity": item.available_quantity,
+        "location": item.location,
+        "condition": item.condition,
+        "purchase_date": item.purchase_date.isoformat() if item.purchase_date else None,
+        "cost": float(item.cost) if item.cost else None,
+        "notes": item.notes
+    })
+
+@app.post("/promotional-items/<int:item_id>/update")
+def update_promotional_item(item_id):
+    """Update an existing promotional item"""
+    item = PromotionalItem.query.get_or_404(item_id)
+    
+    item.name = (request.form.get("name") or "").strip() or item.name
+    item.category = (request.form.get("category") or "").strip() or item.category
+    item.description = (request.form.get("description") or "").strip() or None
+    item.quantity = int(request.form.get("quantity") or item.quantity)
+    item.available_quantity = int(request.form.get("available_quantity") or item.available_quantity)
+    item.location = (request.form.get("location") or "").strip() or None
+    item.condition = (request.form.get("condition") or item.condition).strip()
+    item.purchase_date = parse_date(request.form.get("purchase_date")) or item.purchase_date
+    
+    cost_input = request.form.get("cost")
+    if cost_input:
+        item.cost = float(cost_input)
+    
+    item.notes = (request.form.get("notes") or "").strip() or None
+    
+    db.session.commit()
+    flash(f"✓ Updated {item.name}", "success")
+    return redirect(url_for("promotional_items"))
+
+@app.post("/promotional-items/<int:item_id>/sign-out")
+def sign_out_promotional_item(item_id):
+    """Sign out a promotional item"""
+    item = PromotionalItem.query.get_or_404(item_id)
+    
+    if item.available_quantity < 1:
+        flash("No items available to sign out.", "error")
+        return redirect(url_for("promotional_items"))
+    
+    signed_out_by = (request.form.get("signed_out_by") or "").strip()
+    sign_out_notes = (request.form.get("sign_out_notes") or "").strip()
+    
+    if not signed_out_by or not sign_out_notes:
+        flash("Please provide your name and purpose.", "error")
+        return redirect(url_for("promotional_items"))
+    
+    item.signed_out = True
+    item.signed_out_by = signed_out_by
+    item.signed_out_date = datetime.now()
+    item.sign_out_notes = sign_out_notes
+    item.expected_return_date = parse_date(request.form.get("expected_return_date"))
+    item.available_quantity -= 1
+    
+    db.session.commit()
+    flash(f"✓ {item.name} signed out to {signed_out_by}", "success")
+    return redirect(url_for("promotional_items"))
+
+@app.post("/promotional-items/<int:item_id>/return")
+def return_promotional_item(item_id):
+    """Return a signed out promotional item"""
+    item = PromotionalItem.query.get_or_404(item_id)
+    
+    returned_by = (request.form.get("last_returned_by") or "").strip()
+    return_notes = (request.form.get("return_notes") or "").strip()
+    
+    if not returned_by or not return_notes:
+        flash("Please provide your name and condition notes.", "error")
+        return redirect(url_for("promotional_items"))
+    
+    item.signed_out = False
+    item.last_returned_by = returned_by
+    item.last_returned_date = datetime.now()
+    item.return_notes = return_notes
+    item.available_quantity += 1
+    
+    # Clear sign-out fields
+    item.signed_out_by = None
+    item.signed_out_date = None
+    item.sign_out_notes = None
+    item.expected_return_date = None
+    
+    db.session.commit()
+    flash(f"✓ {item.name} returned by {returned_by}", "success")
+    return redirect(url_for("promotional_items"))
+
+@app.post("/promotional-items/<int:item_id>/delete")
+def delete_promotional_item(item_id):
+    """Delete a promotional item"""
+    item = PromotionalItem.query.get_or_404(item_id)
+    name = item.name
+    db.session.delete(item)
+    db.session.commit()
+    flash(f"✓ Deleted {name}", "success")
+    return redirect(url_for("promotional_items"))
 
 # ---------------- Tasks ----------------
 
@@ -1416,11 +1693,26 @@ def reports():
             if in_stock < 10:
                 low_stock_items.append(item.name)
         
-        # Files data from Document model
-        total_files = Document.query.count()
-        this_month_files = Document.query.filter(
-            Document.uploaded_at >= datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        ).count()
+        # Files data from Document model (with error handling for schema mismatch)
+        total_files = 0
+        this_month_files = 0
+        try:
+            total_files = Document.query.count()
+            this_month_files = Document.query.filter(
+                Document.uploaded_at >= datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            ).count()
+        except Exception as doc_error:
+            app.logger.warning(f"Could not query Document table (likely schema mismatch): {doc_error}")
+            # Use raw SQL query as fallback
+            try:
+                total_files = db.session.execute(text("SELECT COUNT(*) FROM document")).scalar()
+                this_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                this_month_files = db.session.execute(
+                    text("SELECT COUNT(*) FROM document WHERE uploaded_at >= :start"),
+                    {"start": this_month_start}
+                ).scalar()
+            except Exception:
+                pass  # Keep zeros if this fails too
         
         # Provider performance data
         provider_stats = {}
@@ -1467,6 +1759,8 @@ def reports():
                              provider_stats=provider_stats)
     except Exception as e:
         app.logger.error(f"Failed to load reports data: {e}")
+        import traceback
+        app.logger.error(traceback.format_exc())
         # Return with empty data if there's an error
         return render_template("reports.html", 
                              user=user, 
@@ -1544,10 +1838,21 @@ def export_orders():
 def uploads_home():
     user = session.get("user")
     files_by_provider = {}
-    for p in PROVIDERS:
-        rows = Document.query.filter_by(provider=p).order_by(Document.uploaded_at.desc()).all()
-        files_by_provider[p] = rows
-    return render_template("uploads.html", user=user, providers=PROVIDERS, files_by_provider=files_by_provider)
+    try:
+        for p in PROVIDERS:
+            try:
+                rows = Document.query.filter_by(provider=p).order_by(Document.uploaded_at.desc()).all()
+                files_by_provider[p] = rows
+            except Exception as e:
+                app.logger.error(f"Error loading files for provider {p}: {e}")
+                files_by_provider[p] = []
+        return render_template("uploads.html", user=user, providers=PROVIDERS, files_by_provider=files_by_provider)
+    except Exception as e:
+        app.logger.error(f"Error in uploads_home: {e}")
+        import traceback
+        app.logger.error(traceback.format_exc())
+        flash(f"Error loading uploads: {str(e)}", "error")
+        return render_template("uploads.html", user=user, providers=PROVIDERS, files_by_provider={})
 
 @app.route("/sales-order-pdfs/upload", methods=["POST"])
 def upload_sales_order_pdf():
@@ -1767,6 +2072,27 @@ def download_uploaded(provider, stored_name):
         return response
     abort(404)
 
+@app.post("/uploads/<provider>/<stored_name>/delete")
+def delete_uploaded(provider, stored_name):
+    """Delete an uploaded document"""
+    doc = Document.query.filter_by(provider=provider, stored_name=stored_name).first()
+    if not doc:
+        # Try to find by any provider name variant
+        norm = normalize_provider(provider) or provider
+        doc = Document.query.filter_by(provider=norm, stored_name=stored_name).first()
+        if not doc:
+            doc = Document.query.filter_by(stored_name=stored_name).first()
+    
+    if doc:
+        filename = doc.filename
+        db.session.delete(doc)
+        db.session.commit()
+        flash(f"File '{filename}' deleted successfully.", "success")
+    else:
+        flash("File not found.", "error")
+    
+    return redirect(url_for("uploads_home"))
+
 # ---------------- Azure demo auth (optional) ----------------
 def _build_msal_app(cache=None, authority=None):
     return msal.ConfidentialClientApplication(
@@ -1878,7 +2204,8 @@ def _require_login():
         return None
     if session.get("auth_in_progress"):
         return None
-    if not session.get("user") or not session.get("ms_expires_at") or int(time.time()) >= int(session.get("ms_expires_at")) - 60:
+    # Only check if user exists, not MS token expiry - let Flask session handle timeout
+    if not session.get("user"):
         session.clear()
         return redirect(url_for("login"))
     return None
@@ -1953,7 +2280,7 @@ def create_order():
                     for unit in available_units:
                         db.session.add(OrderUnit(order_id=o.id, unit_id=unit.id))
                         unit.status = "Assigned"
-                        unit.last_update = datetime.utcnow()
+                        unit.last_update = datetime.now(timezone.utc)
                 except (ValueError, TypeError) as e:
                     app.logger.error(f"Error assigning stock unit: {e}")
                     pass
@@ -2025,6 +2352,19 @@ def get_order_json(order_id):
     if opt_in and opt_in.strip().lower() == "pending":
         opt_in = None
     
+    # Get assigned units with item names
+    assigned_units = []
+    order_units = OrderUnit.query.filter_by(order_id=order_id).all()
+    for ou in order_units:
+        unit = ou.unit
+        item = unit.item if unit else None
+        assigned_units.append({
+            "barcode": unit.barcode if unit else "",
+            "status": unit.status if unit else "",
+            "item_name": item.name if item else "Unknown",
+            "provider": item.provider if item else ""
+        })
+    
     return jsonify({
         "id": o.id,
         "practitioner_name": o.practitioner_name or "",
@@ -2036,7 +2376,13 @@ def get_order_json(order_id):
         "kit_registered": o.kit_registered,
         "results_sent": o.results_sent,
         "paid": o.paid,
-        "invoiced": o.invoiced
+        "invoiced": o.invoiced,
+        "pop_received": o.pop_received,
+        "payment_received": o.payment_received,
+        "awaiting_payment": o.awaiting_payment,
+        "payment_notes": o.payment_notes or "",
+        "payment_date": o.payment_date.isoformat() if o.payment_date else None,
+        "assigned_units": assigned_units
     })
 
 @app.post("/orders/<int:order_id>/update", endpoint="update_order")
@@ -2060,6 +2406,17 @@ def orders_update(order_id):
         o.results_sent = data.get("results_sent", False)
         o.paid = data.get("paid", False)
         o.invoiced = data.get("invoiced", False)
+        
+        # Payment tracking fields
+        o.pop_received = data.get("pop_received", False)
+        o.payment_received = data.get("payment_received", False)
+        o.awaiting_payment = data.get("awaiting_payment", False)
+        o.payment_notes = (data.get("payment_notes") or o.payment_notes or "").strip() or None
+        
+        # Set payment_date when payment_received is set to True
+        if data.get("payment_received") and not o.payment_date:
+            from datetime import datetime
+            o.payment_date = datetime.now()
         
         # --- Auto-compute completion status for JSON requests ---
         all_done = bool(o.sent_out and o.received_back and o.kit_registered and o.results_sent and o.paid and o.invoiced)
@@ -2092,6 +2449,17 @@ def orders_update(order_id):
         o.results_sent = as_bool("results_sent")
         o.paid = as_bool("paid")
         o.invoiced = as_bool("invoiced")
+        
+        # Payment tracking fields
+        o.pop_received = as_bool("pop_received")
+        o.payment_received = as_bool("payment_received")
+        o.awaiting_payment = as_bool("awaiting_payment")
+        o.payment_notes = (request.form.get("payment_notes") or o.payment_notes or "").strip() or None
+        
+        # Set payment_date when payment_received is set to True
+        if as_bool("payment_received") and not o.payment_date:
+            from datetime import datetime
+            o.payment_date = datetime.now()
 
     # --- Auto-compute completion status ---
     all_done = bool(o.sent_out and o.received_back and o.kit_registered and o.results_sent and o.paid and o.invoiced)
@@ -2156,7 +2524,7 @@ def assign_unit(order_id):
 
     db.session.add(OrderUnit(order_id=order_id, unit_id=unit.id))
     unit.status = "Assigned"
-    unit.last_update = datetime.utcnow()
+    unit.last_update = datetime.now(timezone.utc)
     db.session.commit()
 
     flash(f"Assigned {barcode} to order #{order_id}.", "success")
@@ -2170,7 +2538,7 @@ def unassign_unit(order_id, ou_id):
     unit = ou.unit
     db.session.delete(ou)
     unit.status = "In Stock"
-    unit.last_update = datetime.utcnow()
+    unit.last_update = datetime.now(timezone.utc)
     db.session.commit()
     flash("Unassigned barcode.", "success")
     return redirect(url_for("orders") + f"#o{order_id}")
@@ -2888,7 +3256,7 @@ def auth_diagnostics():
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['PERMANENT_SESSION_LIFETIME'] = 60 * 60 * 8  # 8 hours
+app.config['PERMANENT_SESSION_LIFETIME'] = 60 * 60 * 24  # 24 hours
 
 @app.get("/auth/whoami")
 def auth_whoami():
@@ -2928,19 +3296,3 @@ def practitioners_edit(pid):
         app.logger.error(f"Failed to update practitioner {pid}: {e}")
         flash("Failed to update practitioner.", "error")
     return redirect(url_for("practitioners"))
-
-    # Helper: live stock aggregation from StockUnit (counts of units with status "In Stock")
-    def in_stock_q():
-        return (
-            db.session.query(
-                StockItem.id.label("item_id"),
-                StockItem.name,
-                StockItem.provider,
-                func.count(StockUnit.id).label("in_stock"),
-            )
-            .outerjoin(
-                StockUnit,
-                and_(StockUnit.item_id == StockItem.id, StockUnit.status == "In Stock")
-            )
-            .group_by(StockItem.id, StockItem.name, StockItem.provider)
-        )
