@@ -28,6 +28,19 @@
       <textarea name="barcodes" rows="5" placeholder="Enter barcodes, one per line or separated by commas&#10;Example:&#10;BC000001&#10;BC000002&#10;BC000003"></textarea>
       <small style="color: #999; display: block; margin-top: 4px;">Leave empty to create item without barcodes. You can add barcodes later.</small>
     </label>
+    <div class="multi-barcode-section" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px; margin-top: 16px;">
+      <h3 style="margin: 0 0 12px; font-size: 1rem;">Add multiple units with a shared barcode</h3>
+      <p style="margin: 0 0 12px; color: #999; font-size: 0.9rem;">Useful for supplements or products where each unit shares the same barcode.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+        <label>Shared Barcode
+          <input name="shared_barcode" type="text" placeholder="e.g., HM-MAGGLY-01">
+        </label>
+        <label>Quantity
+          <input name="shared_barcode_quantity" type="number" min="1" max="1000" placeholder="e.g., 24">
+        </label>
+      </div>
+      <small style="color: #999; display: block; margin-top: 4px;">If provided, this barcode will be duplicated for the quantity specified. Leave blank to skip.</small>
+    </div>
     <label>Batch Number (optional) <input name="batch_number" type="text" placeholder="e.g., BATCH-2025-001"></label>
     <div class="actions"><button class="btn" type="submit">Add</button></div>
   </form>

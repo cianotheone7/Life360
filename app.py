@@ -1143,37 +1143,71 @@ def create_item():
     barcodes_text = request.form.get("barcodes", "").strip()
     barcodes_added = 0
     barcodes_skipped = 0
+    seen_input_barcodes = set()
+    unique_barcodes = []
     
     if barcodes_text:
         # Parse barcodes - support both newline and comma separated
-        barcode_list = []
         for line in barcodes_text.split('\n'):
             line = line.strip()
             if ',' in line:
                 # Comma-separated values
-                barcode_list.extend([b.strip() for b in line.split(',') if b.strip()])
-            elif line:
+                for part in line.split(','):
+                    part = part.strip()
+                    if part and part not in seen_input_barcodes:
+                        unique_barcodes.append(part)
+                        seen_input_barcodes.add(part)
+            elif line and line not in seen_input_barcodes:
                 # Single barcode per line
-                barcode_list.append(line)
-        
-        # Remove duplicates while preserving order
-        seen = set()
-        unique_barcodes = []
-        for barcode in barcode_list:
-            if barcode and barcode not in seen:
-                seen.add(barcode)
-                unique_barcodes.append(barcode)
-        
-        # Add stock units for each barcode
-        for barcode in unique_barcodes:
-            # Check if barcode already exists
-            existing_unit = StockUnit.query.filter_by(barcode=barcode).first()
-            if existing_unit:
+                unique_barcodes.append(line)
+                seen_input_barcodes.add(line)
+    
+    # Track the final set to avoid duplicates across free-text and shared barcode inputs
+    all_new_barcodes = set()
+    
+    # Add stock units for each explicit barcode provided
+    for barcode in unique_barcodes:
+        if not barcode:
+            continue
+        if barcode in all_new_barcodes or StockUnit.query.filter_by(barcode=barcode).first():
+            barcodes_skipped += 1
+            continue
+        unit = StockUnit(
+            barcode=barcode,
+            batch_number=batch_number,
+            status="In Stock",
+            item_id=item.id,
+            last_update=datetime.utcnow()
+        )
+        db.session.add(unit)
+        barcodes_added += 1
+        all_new_barcodes.add(barcode)
+    
+    # Optionally duplicate a shared barcode for a quantity of units
+    shared_barcode = (request.form.get("shared_barcode") or "").strip()
+    shared_qty_raw = request.form.get("shared_barcode_quantity")
+    try:
+        shared_qty = int(shared_qty_raw) if shared_qty_raw is not None else 0
+    except ValueError:
+        shared_qty = 0
+    if shared_barcode and shared_qty > 0:
+        if shared_qty > 1000:
+            shared_qty = 1000
+            flash("Quantity capped at 1000 units per submission.", "warning")
+        generated = 0
+        suffix = 0
+        safeguard = 0
+        while generated < shared_qty and safeguard < shared_qty + 5000:
+            suffix += 1
+            candidate = shared_barcode if suffix == 1 else f"{shared_barcode}-{suffix}"
+            safeguard += 1
+            if candidate in all_new_barcodes:
+                continue
+            if StockUnit.query.filter_by(barcode=candidate).first():
                 barcodes_skipped += 1
                 continue
-            
             unit = StockUnit(
-                barcode=barcode,
+                barcode=candidate,
                 batch_number=batch_number,
                 status="In Stock",
                 item_id=item.id,
@@ -1181,9 +1215,13 @@ def create_item():
             )
             db.session.add(unit)
             barcodes_added += 1
-        
-        # Update current_stock count
-        item.current_stock = barcodes_added
+            all_new_barcodes.add(candidate)
+            generated += 1
+        if generated < shared_qty:
+            flash(f"Only created {generated} of the requested {shared_qty} shared barcode units (duplicates were skipped).", "warning")
+    
+    # Update current_stock count
+    item.current_stock = barcodes_added
     
     db.session.commit()
     
