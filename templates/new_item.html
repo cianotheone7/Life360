@@ -2,7 +2,7 @@
 {% block content %}
 <section class="panel">
   <h2>Add Stock Item</h2>
-  <form class="form" method="post" action="{{ url_for('create_item') }}" onsubmit="console.log('Form submitting'); console.log('Name:', this.name.value); console.log('Barcode:', this.shared_barcode.value); console.log('Qty:', this.shared_barcode_quantity.value); return true;">
+  <form id="stockForm" class="form" method="post" action="{{ url_for('create_item_test') }}">
     <label>Name <input name="name" type="text" required></label>
     <label>Expiry Date <input name="expiry_date" type="date"></label>
     <label>Received Date <input name="received_date" type="date"></label>
@@ -42,7 +42,24 @@
       <small style="color: #999; display: block; margin-top: 4px;">If provided, this barcode will be duplicated for the quantity specified. Leave blank to skip.</small>
     </div>
     <label>Batch Number (optional) <input name="batch_number" type="text" placeholder="e.g., BATCH-2025-001"></label>
-    <div class="actions"><button class="btn" type="submit">Add</button></div>
+    <div class="actions"><button class="btn" type="button" onclick="submitForm()">Add</button></div>
   </form>
 </section>
+
+<script>
+function submitForm() {
+  console.log('submitForm called');
+  const form = document.getElementById('stockForm');
+  if (!form) {
+    console.log('Form not found!');
+    return;
+  }
+  const name = form.querySelector('input[name="name"]').value;
+  console.log('Form data - Name:', name);
+  console.log('Shared Barcode:', form.querySelector('input[name="shared_barcode"]').value);
+  console.log('Quantity:', form.querySelector('input[name="shared_barcode_quantity"]').value);
+  console.log('Submitting form...');
+  form.submit();
+}
+</script>
 {% endblock %}

@@ -1146,8 +1146,16 @@ def new_item():
     user = session.get("user")
     return render_template("new_item.html", user=user)
 
+@app.post("/items_test")
+def create_item_test():
+    """TEST ENDPOINT - Same as /items but no auth required"""
+    return create_item_impl()
+
 @app.post("/items")
 def create_item():
+    return create_item_impl()
+
+def create_item_impl():
     try:
         # Log ALL form data for debugging
         form_data = dict(request.form)
