@@ -1155,6 +1155,11 @@ def create_item():
         print(f"DEBUG: Form data keys: {list(form_data.keys())}")
         print(f"DEBUG: Full form data: {form_data}")
         
+        # Check specifically for barcode-related fields
+        for key in request.form.keys():
+            if 'barcode' in key.lower() or 'quantity' in key.lower() or 'quant' in key.lower():
+                print(f"DEBUG: Found field '{key}' = '{request.form.get(key)}'")
+        
         # Normalize and validate incoming fields
         name = (request.form.get("name") or "").strip()
         expiry = parse_date(request.form.get("expiry_date"))
@@ -1210,7 +1215,8 @@ def create_item():
         # Option 1: Single barcode + quantity
         # Support both field names: "barcode" and "shared_barcode"
         single_barcode = (request.form.get("shared_barcode") or request.form.get("barcode") or "").strip()
-        quantity_str = request.form.get("quantity", "").strip()
+        # Support multiple possible field names for quantity
+        quantity_str = (request.form.get("quantity") or request.form.get("shared_quantity") or request.form.get("multi_quantity") or "").strip()
         
         app.logger.info(f"Barcode: '{single_barcode}', Quantity: '{quantity_str}'")
         
