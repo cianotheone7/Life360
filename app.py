@@ -231,7 +231,7 @@ class StockItem(db.Model):
 
 class StockUnit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    barcode = db.Column(db.String(120), unique=True, nullable=False)
+    barcode = db.Column(db.String(120), nullable=False)  # Removed unique=True to allow duplicate barcodes
     batch_number = db.Column(db.String(120), nullable=True)
     status = db.Column(db.String(40), nullable=False, default="In Stock")
     item_id = db.Column(db.Integer, db.ForeignKey('stock_item.id'), nullable=False)
@@ -1169,7 +1169,8 @@ def create_item():
     for barcode in unique_barcodes:
         if not barcode:
             continue
-        if barcode in all_new_barcodes or StockUnit.query.filter_by(barcode=barcode).first():
+        # Only skip if we've already added this barcode in this same submission
+        if barcode in all_new_barcodes:
             barcodes_skipped += 1
             continue
         unit = StockUnit(
@@ -1194,20 +1195,10 @@ def create_item():
         if shared_qty > 1000:
             shared_qty = 1000
             flash("Quantity capped at 1000 units per submission.", "warning")
-        generated = 0
-        suffix = 0
-        safeguard = 0
-        while generated < shared_qty and safeguard < shared_qty + 5000:
-            suffix += 1
-            candidate = shared_barcode if suffix == 1 else f"{shared_barcode}-{suffix}"
-            safeguard += 1
-            if candidate in all_new_barcodes:
-                continue
-            if StockUnit.query.filter_by(barcode=candidate).first():
-                barcodes_skipped += 1
-                continue
+        # Create multiple units with the exact same barcode
+        for _ in range(shared_qty):
             unit = StockUnit(
-                barcode=candidate,
+                barcode=shared_barcode,
                 batch_number=batch_number,
                 status="In Stock",
                 item_id=item.id,
@@ -1215,10 +1206,6 @@ def create_item():
             )
             db.session.add(unit)
             barcodes_added += 1
-            all_new_barcodes.add(candidate)
-            generated += 1
-        if generated < shared_qty:
-            flash(f"Only created {generated} of the requested {shared_qty} shared barcode units (duplicates were skipped).", "warning")
     
     # Update current_stock count
     item.current_stock = barcodes_added

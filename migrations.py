@@ -333,6 +333,57 @@ class MigrationManager:
                     ALTER TABLE document DROP COLUMN file_size;
                     ALTER TABLE document DROP COLUMN file_data;
                 """
+            ),
+            Migration(
+                version="008",
+                description="Remove unique constraint from stock_unit.barcode to allow duplicate barcodes",
+                up_sql="""
+                    -- Drop unique constraint/index on barcode column
+                    -- PostgreSQL: Drop constraint (may be named stock_unit_barcode_key or similar)
+                    DO $$
+                    DECLARE
+                        constraint_name text;
+                    BEGIN
+                        -- Find and drop the unique constraint
+                        SELECT conname INTO constraint_name
+                        FROM pg_constraint
+                        WHERE conrelid = 'stock_unit'::regclass
+                        AND contype = 'u'
+                        AND array_length(conkey, 1) = 1
+                        AND (SELECT attname FROM pg_attribute WHERE attrelid = 'stock_unit'::regclass AND attnum = conkey[1]) = 'barcode';
+                        
+                        IF constraint_name IS NOT NULL THEN
+                            EXECUTE 'ALTER TABLE stock_unit DROP CONSTRAINT ' || quote_ident(constraint_name);
+                        END IF;
+                    END $$;
+                    
+                    -- Also drop any unique index on barcode
+                    DROP INDEX IF EXISTS stock_unit_barcode_key;
+                    DROP INDEX IF EXISTS idx_stock_unit_barcode_unique;
+                """,
+                down_sql="""
+                    -- Restore unique constraint (recreate table with UNIQUE)
+                    CREATE TABLE IF NOT EXISTS stock_unit_old (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        barcode VARCHAR(120) UNIQUE NOT NULL,
+                        batch_number VARCHAR(120),
+                        status VARCHAR(40) NOT NULL DEFAULT 'In Stock',
+                        item_id INTEGER NOT NULL,
+                        last_update DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (item_id) REFERENCES stock_item (id)
+                    );
+                    
+                    -- Copy data (may fail if duplicates exist)
+                    INSERT INTO stock_unit_old (id, barcode, batch_number, status, item_id, last_update)
+                    SELECT id, barcode, batch_number, status, item_id, last_update FROM stock_unit;
+                    
+                    DROP TABLE stock_unit;
+                    ALTER TABLE stock_unit_old RENAME TO stock_unit;
+                    
+                    CREATE INDEX IF NOT EXISTS idx_stock_unit_item_id ON stock_unit(item_id);
+                    CREATE INDEX IF NOT EXISTS idx_stock_unit_status ON stock_unit(status);
+                    CREATE INDEX IF NOT EXISTS idx_stock_unit_barcode ON stock_unit(barcode);
+                """
             )
         ]
         
