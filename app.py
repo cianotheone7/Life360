@@ -1149,8 +1149,11 @@ def new_item():
 @app.post("/items")
 def create_item():
     try:
-        # Log form data for debugging
-        app.logger.info(f"Create item called - Form data: {dict(request.form)}")
+        # Log ALL form data for debugging
+        form_data = dict(request.form)
+        app.logger.info(f"Create item called - ALL Form data: {form_data}")
+        print(f"DEBUG: Form data keys: {list(form_data.keys())}")
+        print(f"DEBUG: Full form data: {form_data}")
         
         # Normalize and validate incoming fields
         name = (request.form.get("name") or "").strip()
