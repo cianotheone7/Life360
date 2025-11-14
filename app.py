@@ -1746,15 +1746,32 @@ PROMO_DEFAULT_CATEGORIES = ["Gift", "Banner", "Gazebo", "Stand", "Brochure", "Ot
 @app.route("/gifts")
 def promotions_home():
     user = session.get("user")
-    items = PromotionalItem.query.order_by(PromotionalItem.category, PromotionalItem.name).all()
-    categories = sorted({i.category for i in items if i.category}) or PROMO_DEFAULT_CATEGORIES
-    total_items = sum(i.quantity for i in items)
-    total_signed_out = sum((i.quantity - i.available_quantity) for i in items if i.quantity and i.available_quantity is not None)
-    total_available = sum(i.available_quantity for i in items if i.available_quantity is not None)
+    raw_items = PromotionalItem.query.order_by(PromotionalItem.category, PromotionalItem.name).all()
+    sanitized_items = []
+    total_items = 0
+    total_available = 0
+
+    for item in raw_items:
+        qty = max(0, item.quantity or 0)
+        avail = item.available_quantity
+        if avail is None:
+            avail = qty
+        avail = max(0, min(qty, avail))
+        signed_out = max(0, qty - avail)
+        setattr(item, "display_quantity", qty)
+        setattr(item, "display_available", avail)
+        setattr(item, "display_signed_out", signed_out)
+        sanitized_items.append(item)
+        total_items += qty
+        total_available += avail
+
+    total_signed_out = max(0, total_items - total_available)
+    categories = sorted({i.category for i in sanitized_items if i.category}) or PROMO_DEFAULT_CATEGORIES
+
     return render_template(
         "promotions.html",
         user=user,
-        items=items,
+        items=sanitized_items,
         categories=categories,
         total_items=total_items,
         total_signed_out=total_signed_out,
@@ -1825,6 +1842,10 @@ def promotions_sign_out(item_id):
     if item.available_quantity is None:
         item.available_quantity = item.quantity or 0
 
+    if item.available_quantity <= 0:
+        flash(f"No available units for {item.name}.", "error")
+        return redirect(url_for("promotions_home"))
+
     if item.available_quantity < qty:
         flash(f"Only {item.available_quantity} unit(s) are available for {item.name}.", "error")
         return redirect(url_for("promotions_home"))
@@ -1861,6 +1882,15 @@ def promotions_return(item_id):
 
     if item.available_quantity is None:
         item.available_quantity = 0
+
+    max_returnable = max(0, (item.quantity or 0) - (item.available_quantity or 0))
+    if max_returnable <= 0:
+        flash(f"No units from {item.name} are currently signed out.", "error")
+        return redirect(url_for("promotions_home"))
+
+    if qty > max_returnable:
+        flash(f"Only {max_returnable} unit(s) can be returned for {item.name}.", "warning")
+        qty = max_returnable
 
     item.available_quantity = min(item.quantity, item.available_quantity + qty)
     item.signed_out = item.available_quantity < item.quantity

@@ -97,11 +97,12 @@
                         {% endif %}
                       </div>
                       <div class="item-meta">
-                        <span>Qty: {{ item.available_quantity }}/{{ item.quantity }}</span>
-                        {% if item.signed_out %}
-                          <span class="status-tag signed-out">Signed out by {{ item.signed_out_by }}</span>
+                        <span>Available: {{ item.display_available }}/{{ item.display_quantity }}</span>
+                        <span>Signed out: {{ item.display_signed_out }}</span>
+                        {% if item.signed_out and item.signed_out_by %}
+                          <span class="status-tag signed-out">Last by {{ item.signed_out_by }}</span>
                         {% else %}
-                          <span class="status-tag available">Available</span>
+                          <span class="status-tag available">Ready</span>
                         {% endif %}
                         {% if item.expected_return_date %}
                           <span class="return-tag">Due {{ item.expected_return_date }}</span>
@@ -110,39 +111,50 @@
                       {% if item.description %}
                         <p class="muted">{{ item.description }}</p>
                       {% endif %}
+                      {% if item.notes %}
+                        <p class="muted">Notes: {{ item.notes }}</p>
+                      {% endif %}
+                      <div class="item-buttons">
+                        <button type="button" class="btn secondary" onclick="togglePromoForm('{{ item.id }}','signout')">Sign Out</button>
+                        <button type="button" class="btn" onclick="togglePromoForm('{{ item.id }}','return')">Return</button>
+                      </div>
                     </div>
                     <div class="item-actions">
-                      <form method="post" action="{{ url_for('promotions_sign_out', item_id=item.id) }}">
-                        <div class="split">
-                          <label>Qty
-                            <input name="sign_out_qty" type="number" min="1" value="1">
+                      <div id="promo-signout-{{ item.id }}" class="promo-action" hidden>
+                        <form method="post" action="{{ url_for('promotions_sign_out', item_id=item.id) }}">
+                          <div class="split">
+                            <label>Qty
+                              <input name="sign_out_qty" type="number" min="1" max="{{ item.display_available }}" value="{{ 1 if item.display_available else 0 }}" {% if item.display_available == 0 %}disabled{% endif %}>
+                            </label>
+                            <label>Return date
+                              <input name="expected_return_date" type="date" {% if item.display_available == 0 %}disabled{% endif %}>
+                            </label>
+                          </div>
+                          <label>Signed out by
+                            <input name="signed_out_by" placeholder="Staff member" {% if item.display_available == 0 %}disabled{% endif %}>
                           </label>
-                          <label>Return date
-                            <input name="expected_return_date" type="date">
+                          <label>Notes
+                            <input name="sign_out_notes" placeholder="Purpose / destination" {% if item.display_available == 0 %}disabled{% endif %}>
                           </label>
-                        </div>
-                        <label>Signed out by
-                          <input name="signed_out_by" placeholder="Staff member">
-                        </label>
-                        <label>Notes
-                          <input name="sign_out_notes" placeholder="Purpose / destination">
-                        </label>
-                        <button class="btn secondary" type="submit">Sign Out</button>
-                      </form>
-                      <form method="post" action="{{ url_for('promotions_return', item_id=item.id) }}">
-                        <div class="split">
-                          <label>Qty
-                            <input name="return_qty" type="number" min="1" value="1">
+                          <button class="btn secondary" type="submit" {% if item.display_available == 0 %}disabled{% endif %}>Confirm Sign Out</button>
+                        </form>
+                      </div>
+                      <div id="promo-return-{{ item.id }}" class="promo-action" hidden>
+                        <form method="post" action="{{ url_for('promotions_return', item_id=item.id) }}">
+                          <div class="split">
+                            <label>Qty
+                              <input name="return_qty" type="number" min="1" max="{{ item.display_signed_out or 1 }}" value="{{ 1 if item.display_signed_out else 0 }}" {% if item.display_signed_out == 0 %}disabled{% endif %}>
+                            </label>
+                            <label>Returned by
+                              <input name="returned_by" placeholder="Staff member" {% if item.display_signed_out == 0 %}disabled{% endif %}>
+                            </label>
+                          </div>
+                          <label>Notes
+                            <input name="return_notes" placeholder="Condition / feedback" {% if item.display_signed_out == 0 %}disabled{% endif %}>
                           </label>
-                          <label>Returned by
-                            <input name="returned_by" placeholder="Staff member">
-                          </label>
-                        </div>
-                        <label>Notes
-                          <input name="return_notes" placeholder="Condition / feedback">
-                        </label>
-                        <button class="btn" type="submit">Return</button>
-                      </form>
+                          <button class="btn" type="submit" {% if item.display_signed_out == 0 %}disabled{% endif %}>Confirm Return</button>
+                        </form>
+                      </div>
                     </div>
                   </div>
                 {% endfor %}
@@ -180,7 +192,10 @@
 .status-tag.signed-out { background:rgba(244,114,182,0.15); color:#f472b6; }
 .return-tag { color:#fbbf24; }
 .location-tag { background:rgba(59,130,246,0.2); color:#60a5fa; padding:2px 8px; border-radius:999px; font-size:0.75rem; margin-left:6px; }
-.item-actions form { display:flex; flex-direction:column; gap:8px; padding:10px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); background:rgba(15,23,42,0.4); }
+.item-buttons { display:flex; gap:8px; margin-top:8px; }
+.item-actions { display:flex; flex-direction:column; gap:8px; }
+.promo-action[hidden]{ display:none; }
+.promo-action form { display:flex; flex-direction:column; gap:8px; padding:10px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); background:rgba(15,23,42,0.4); }
 .item-actions input, .item-actions textarea { width:100%; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.03); color:#fff; padding:6px 8px; }
 .item-actions button { width:100%; }
 .empty-state { text-align:center; padding:40px 10px; color:rgba(255,255,255,0.6); }
@@ -189,5 +204,19 @@
   .item-row { grid-template-columns:1fr; }
 }
 </style>
+<script>
+function togglePromoForm(id, type){
+  const out = document.getElementById(`promo-signout-${id}`);
+  const ret = document.getElementById(`promo-return-${id}`);
+  if(!out || !ret) return;
+  if(type === 'signout'){
+    out.hidden = !out.hidden;
+    if(!out.hidden) ret.hidden = true;
+  }else{
+    ret.hidden = !ret.hidden;
+    if(!ret.hidden) out.hidden = true;
+  }
+}
+</script>
 {% endblock %}
 
