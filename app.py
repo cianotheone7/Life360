@@ -658,8 +658,72 @@ def _ensure_tables():
             run_migrations(db)
         except Exception as mig_err:
             app.logger.warning("Database migrations failed: %s", mig_err)
+        _ensure_barcode_column_non_unique()
     except Exception as e:
         app.logger.warning(f"db.create_all failed: {e}")
+
+
+def _ensure_barcode_column_non_unique():
+    """Ensure stock_unit.barcode allows duplicates for both SQLite and Postgres."""
+    try:
+        engine = db.engine
+    except Exception as e:
+        app.logger.debug("No DB engine available for barcode constraint check: %s", e)
+        return
+
+    backend = (engine.url.get_backend_name() or "").lower()
+
+    try:
+        with engine.connect() as conn:
+            if backend == "postgresql":
+                constraint_rows = conn.execute(text("""
+                    SELECT conname
+                    FROM pg_constraint
+                    WHERE conrelid = 'stock_unit'::regclass
+                      AND contype = 'u'
+                      AND array_length(conkey, 1) = 1
+                      AND (SELECT attname FROM pg_attribute
+                           WHERE attrelid = 'stock_unit'::regclass
+                             AND attnum = conkey[1]) = 'barcode'
+                """)).fetchall()
+
+                for row in constraint_rows:
+                    conn.execute(text(f'ALTER TABLE stock_unit DROP CONSTRAINT "{row[0]}"'))
+
+                conn.execute(text("DROP INDEX IF EXISTS stock_unit_barcode_key"))
+                conn.execute(text("DROP INDEX IF EXISTS idx_stock_unit_barcode_unique"))
+                conn.commit()
+            elif backend == "sqlite":
+                table_sql = conn.execute(text("""
+                    SELECT sql FROM sqlite_master
+                    WHERE type='table' AND name='stock_unit'
+                """)).scalar()
+                if table_sql and "barcode" in table_sql.lower() and "unique" in table_sql.lower():
+                    conn.execute(text("PRAGMA foreign_keys=OFF"))
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS stock_unit_tmp (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            barcode VARCHAR(120) NOT NULL,
+                            batch_number VARCHAR(120),
+                            status VARCHAR(40) NOT NULL DEFAULT 'In Stock',
+                            item_id INTEGER NOT NULL,
+                            last_update DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (item_id) REFERENCES stock_item (id)
+                        )
+                    """))
+                    conn.execute(text("""
+                        INSERT INTO stock_unit_tmp (id, barcode, batch_number, status, item_id, last_update)
+                        SELECT id, barcode, batch_number, status, item_id, last_update FROM stock_unit
+                    """))
+                    conn.execute(text("DROP TABLE stock_unit"))
+                    conn.execute(text("ALTER TABLE stock_unit_tmp RENAME TO stock_unit"))
+                    conn.execute(text("PRAGMA foreign_keys=ON"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_stock_unit_item_id ON stock_unit(item_id)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_stock_unit_status ON stock_unit(status)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_stock_unit_barcode ON stock_unit(barcode)"))
+                    conn.commit()
+    except Exception as e:
+        app.logger.warning("Failed to ensure barcode column non-unique: %s", e)
 
 @app.route("/sms/send", methods=["POST"])
 def sms_send():
