@@ -15,6 +15,7 @@ import secrets
 from dotenv import load_dotenv
 from pathlib import Path as _P
 from jinja2 import TemplateNotFound
+from migrations import run_migrations
 
 # Load .env placed next to this file, regardless of CWD
 load_dotenv(dotenv_path=_P(__file__).with_name('.env'))
@@ -653,6 +654,10 @@ MYMOBILEAPI_URL = os.environ.get("MYMOBILEAPI_URL", "https://rest.mymobileapi.co
 def _ensure_tables():
     try:
         db.create_all()
+        try:
+            run_migrations(db)
+        except Exception as mig_err:
+            app.logger.warning("Database migrations failed: %s", mig_err)
     except Exception as e:
         app.logger.warning(f"db.create_all failed: {e}")
 
