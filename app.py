@@ -1905,6 +1905,18 @@ def promotions_return(item_id):
     flash(f"{qty} unit(s) of {item.name} returned by {returned_by}.", "success")
     return redirect(url_for("promotions_home"))
 
+@app.post("/gifts/<int:item_id>/delete")
+def promotions_delete(item_id):
+    item = PromotionalItem.query.get_or_404(item_id)
+    try:
+        db.session.delete(item)
+        db.session.commit()
+        flash(f"Deleted {item.name}.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Could not delete item: {e}", "error")
+    return redirect(url_for("promotions_home"))
+
 @app.post("/tasks/<int:tid>/update")
 def tasks_update(tid):
     t = Task.query.get_or_404(tid)

@@ -117,6 +117,9 @@
                       <div class="item-buttons">
                         <button type="button" class="btn secondary" onclick="togglePromoForm('{{ item.id }}','signout')">Sign Out</button>
                         <button type="button" class="btn" onclick="togglePromoForm('{{ item.id }}','return')">Return</button>
+                        <form method="post" action="{{ url_for('promotions_delete', item_id=item.id) }}" class="inline-delete js-confirm-form" data-confirm="Delete {{ item.name }} and all tracking history?">
+                          <button type="submit" class="btn danger">Delete</button>
+                        </form>
                       </div>
                     </div>
                     <div class="item-actions">
@@ -192,12 +195,15 @@
 .status-tag.signed-out { background:rgba(244,114,182,0.15); color:#f472b6; }
 .return-tag { color:#fbbf24; }
 .location-tag { background:rgba(59,130,246,0.2); color:#60a5fa; padding:2px 8px; border-radius:999px; font-size:0.75rem; margin-left:6px; }
-.item-buttons { display:flex; gap:8px; margin-top:8px; }
+.item-buttons { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
 .item-actions { display:flex; flex-direction:column; gap:8px; }
 .promo-action[hidden]{ display:none; }
 .promo-action form { display:flex; flex-direction:column; gap:8px; padding:10px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); background:rgba(15,23,42,0.4); }
 .item-actions input, .item-actions textarea { width:100%; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.03); color:#fff; padding:6px 8px; }
 .item-actions button { width:100%; }
+.inline-delete { margin:0; }
+.inline-delete button { width:auto; }
+.btn.danger { background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; }
 .empty-state { text-align:center; padding:40px 10px; color:rgba(255,255,255,0.6); }
 @media (max-width: 1100px) {
   .promo-grid { grid-template-columns:1fr; }
