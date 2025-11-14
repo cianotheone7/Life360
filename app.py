@@ -535,6 +535,14 @@ def parse_date(v):
         return datetime.fromisoformat(v).date() if "T" in v else date.fromisoformat(v)
     except: return None
 
+def parse_float(v):
+    try:
+        if v is None or str(v).strip() == "":
+            return None
+        return float(str(v).replace(",", "").strip())
+    except Exception:
+        return None
+
 def parse_dt(v):
     if not v: return None
     try:
@@ -1730,6 +1738,142 @@ def tasks_add():
     db.session.add(t); db.session.commit()
     flash("Task added.", "success")
     return redirect(url_for("tasks_home"))
+
+# ---------------- Gifts & Banners (Promotional Items) ----------------
+
+PROMO_DEFAULT_CATEGORIES = ["Gift", "Banner", "Gazebo", "Stand", "Brochure", "Other"]
+
+@app.route("/gifts")
+def promotions_home():
+    user = session.get("user")
+    items = PromotionalItem.query.order_by(PromotionalItem.category, PromotionalItem.name).all()
+    categories = sorted({i.category for i in items if i.category}) or PROMO_DEFAULT_CATEGORIES
+    total_items = sum(i.quantity for i in items)
+    total_signed_out = sum((i.quantity - i.available_quantity) for i in items if i.quantity and i.available_quantity is not None)
+    total_available = sum(i.available_quantity for i in items if i.available_quantity is not None)
+    return render_template(
+        "promotions.html",
+        user=user,
+        items=items,
+        categories=categories,
+        total_items=total_items,
+        total_signed_out=total_signed_out,
+        total_available=total_available,
+    )
+
+@app.post("/gifts/add")
+def promotions_add():
+    name = (request.form.get("name") or "").strip()
+    category = (request.form.get("category") or "Other").strip() or "Other"
+    description = (request.form.get("description") or "").strip()
+    quantity_raw = request.form.get("quantity") or "1"
+    location = (request.form.get("location") or "").strip()
+    condition = (request.form.get("condition") or "").strip()
+    purchase_date = parse_date(request.form.get("purchase_date"))
+    cost = parse_float(request.form.get("cost"))
+    notes = (request.form.get("notes") or "").strip() or None
+
+    try:
+        quantity = int(quantity_raw)
+        if quantity < 1:
+            raise ValueError
+    except ValueError:
+        flash("Quantity must be a positive number.", "error")
+        return redirect(url_for("promotions_home"))
+
+    if not name:
+        flash("Item name is required.", "error")
+        return redirect(url_for("promotions_home"))
+
+    item = PromotionalItem(
+        name=name,
+        category=category,
+        description=description or None,
+        quantity=quantity,
+        available_quantity=quantity,
+        location=location or None,
+        condition=condition or None,
+        purchase_date=purchase_date,
+        cost=cost,
+        notes=notes,
+    )
+    db.session.add(item)
+    db.session.commit()
+    flash(f"Added {name} ({category}) with {quantity} unit(s).", "success")
+    return redirect(url_for("promotions_home"))
+
+@app.post("/gifts/<int:item_id>/sign-out")
+def promotions_sign_out(item_id):
+    item = PromotionalItem.query.get_or_404(item_id)
+    signed_out_by = (request.form.get("signed_out_by") or "").strip()
+    expected_return_date = parse_date(request.form.get("expected_return_date"))
+    sign_out_notes = (request.form.get("sign_out_notes") or "").strip() or None
+    qty_raw = request.form.get("sign_out_qty") or "1"
+
+    try:
+        qty = int(qty_raw)
+        if qty < 1:
+            raise ValueError
+    except ValueError:
+        flash("Sign-out quantity must be at least 1.", "error")
+        return redirect(url_for("promotions_home"))
+
+    if not signed_out_by:
+        flash("Please provide the staff member name.", "error")
+        return redirect(url_for("promotions_home"))
+
+    if item.available_quantity is None:
+        item.available_quantity = item.quantity or 0
+
+    if item.available_quantity < qty:
+        flash(f"Only {item.available_quantity} unit(s) are available for {item.name}.", "error")
+        return redirect(url_for("promotions_home"))
+
+    item.available_quantity -= qty
+    item.signed_out = item.available_quantity < item.quantity
+    item.signed_out_by = signed_out_by
+    item.signed_out_date = datetime.utcnow()
+    item.expected_return_date = expected_return_date
+    item.sign_out_notes = sign_out_notes
+    item.last_returned_by = None
+    db.session.commit()
+    flash(f"{qty} unit(s) of {item.name} signed out by {signed_out_by}.", "success")
+    return redirect(url_for("promotions_home"))
+
+@app.post("/gifts/<int:item_id>/return")
+def promotions_return(item_id):
+    item = PromotionalItem.query.get_or_404(item_id)
+    returned_by = (request.form.get("returned_by") or "").strip()
+    return_notes = (request.form.get("return_notes") or "").strip() or None
+    qty_raw = request.form.get("return_qty") or "1"
+
+    try:
+        qty = int(qty_raw)
+        if qty < 1:
+            raise ValueError
+    except ValueError:
+        flash("Return quantity must be at least 1.", "error")
+        return redirect(url_for("promotions_home"))
+
+    if not returned_by:
+        flash("Please specify who returned the item.", "error")
+        return redirect(url_for("promotions_home"))
+
+    if item.available_quantity is None:
+        item.available_quantity = 0
+
+    item.available_quantity = min(item.quantity, item.available_quantity + qty)
+    item.signed_out = item.available_quantity < item.quantity
+    if not item.signed_out:
+        item.signed_out_by = None
+        item.expected_return_date = None
+        item.sign_out_notes = None
+    item.last_returned_by = returned_by
+    item.last_returned_date = datetime.utcnow()
+    item.return_notes = return_notes
+    db.session.commit()
+    flash(f"{qty} unit(s) of {item.name} returned by {returned_by}.", "success")
+    return redirect(url_for("promotions_home"))
 
 @app.post("/tasks/<int:tid>/update")
 def tasks_update(tid):

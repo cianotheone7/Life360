@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="promo-container">
+  <div class="promo-header">
+    <div>
+      <h1>Gifts & Banners</h1>
+      <p class="muted">Track promotional kits, banners, gazebos and other marketing assets.</p>
+    </div>
+    <div class="promo-stats">
+      <div class="stat-card">
+        <div class="stat-label">Total Units</div>
+        <div class="stat-value">{{ total_items or 0 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Available</div>
+        <div class="stat-value">{{ total_available or 0 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Signed Out</div>
+        <div class="stat-value">{{ total_signed_out or 0 }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="promo-grid">
+    <section class="promo-form card">
+      <h2>Add Item</h2>
+      <form method="post" action="{{ url_for('promotions_add') }}">
+        <label>Name
+          <input name="name" placeholder="e.g. Geneway Gift Box" required>
+        </label>
+        <label>Category
+          <select name="category">
+            {% for cat in (categories or []) %}
+              <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+            {% if not categories %}
+              <option value="Gift">Gift</option>
+              <option value="Banner">Banner</option>
+              <option value="Gazebo">Gazebo</option>
+              <option value="Other">Other</option>
+            {% endif %}
+          </select>
+        </label>
+        <label>Description
+          <textarea name="description" rows="2" placeholder="Optional details"></textarea>
+        </label>
+        <div class="split">
+          <label>Quantity
+            <input name="quantity" type="number" min="1" value="1" required>
+          </label>
+          <label>Purchase Date
+            <input name="purchase_date" type="date">
+          </label>
+        </div>
+        <div class="split">
+          <label>Location
+            <input name="location" placeholder="e.g. Sandton HQ">
+          </label>
+          <label>Condition
+            <input name="condition" placeholder="New / Good / Fair">
+          </label>
+        </div>
+        <label>Cost (optional)
+          <input name="cost" type="number" step="0.01" placeholder="e.g. 1200">
+        </label>
+        <label>Notes
+          <textarea name="notes" rows="2" placeholder="Special handling or contacts"></textarea>
+        </label>
+        <button class="btn" type="submit">Add Item</button>
+      </form>
+    </section>
+
+    <section class="promo-list card">
+      <h2>Inventory</h2>
+      {% if not items %}
+        <div class="empty-state">
+          <p>No promotional items captured yet.</p>
+        </div>
+      {% else %}
+        <div class="promo-table">
+          {% for cat in categories %}
+            {% set cat_items = items | selectattr('category', 'equalto', cat) | list %}
+            {% if cat_items %}
+              <div class="category-block">
+                <div class="category-header">
+                  <h3>{{ cat }}</h3>
+                  <span>{{ cat_items|length }} item(s)</span>
+                </div>
+                {% for item in cat_items %}
+                  <div class="item-row">
+                    <div class="item-main">
+                      <div class="item-title">
+                        <strong>{{ item.name }}</strong>
+                        {% if item.location %}
+                          <span class="location-tag">{{ item.location }}</span>
+                        {% endif %}
+                      </div>
+                      <div class="item-meta">
+                        <span>Qty: {{ item.available_quantity }}/{{ item.quantity }}</span>
+                        {% if item.signed_out %}
+                          <span class="status-tag signed-out">Signed out by {{ item.signed_out_by }}</span>
+                        {% else %}
+                          <span class="status-tag available">Available</span>
+                        {% endif %}
+                        {% if item.expected_return_date %}
+                          <span class="return-tag">Due {{ item.expected_return_date }}</span>
+                        {% endif %}
+                      </div>
+                      {% if item.description %}
+                        <p class="muted">{{ item.description }}</p>
+                      {% endif %}
+                    </div>
+                    <div class="item-actions">
+                      <form method="post" action="{{ url_for('promotions_sign_out', item_id=item.id) }}">
+                        <div class="split">
+                          <label>Qty
+                            <input name="sign_out_qty" type="number" min="1" value="1">
+                          </label>
+                          <label>Return date
+                            <input name="expected_return_date" type="date">
+                          </label>
+                        </div>
+                        <label>Signed out by
+                          <input name="signed_out_by" placeholder="Staff member">
+                        </label>
+                        <label>Notes
+                          <input name="sign_out_notes" placeholder="Purpose / destination">
+                        </label>
+                        <button class="btn secondary" type="submit">Sign Out</button>
+                      </form>
+                      <form method="post" action="{{ url_for('promotions_return', item_id=item.id) }}">
+                        <div class="split">
+                          <label>Qty
+                            <input name="return_qty" type="number" min="1" value="1">
+                          </label>
+                          <label>Returned by
+                            <input name="returned_by" placeholder="Staff member">
+                          </label>
+                        </div>
+                        <label>Notes
+                          <input name="return_notes" placeholder="Condition / feedback">
+                        </label>
+                        <button class="btn" type="submit">Return</button>
+                      </form>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+
+<style>
+.promo-container { display:flex; flex-direction:column; gap:20px; }
+.promo-header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; align-items:center; }
+.promo-stats { display:flex; gap:12px; flex-wrap:wrap; }
+.stat-card { min-width:120px; padding:12px 16px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); }
+.stat-label { font-size:0.85rem; color:rgba(255,255,255,0.6); }
+.stat-value { font-size:1.5rem; font-weight:700; color:#fff; }
+.promo-grid { display:grid; grid-template-columns:320px 1fr; gap:20px; }
+.card { padding:20px; border-radius:16px; background:rgba(15,23,42,0.8); border:1px solid rgba(255,255,255,0.08); }
+.promo-form form { display:flex; flex-direction:column; gap:12px; }
+.promo-form input, .promo-form textarea, .promo-form select { width:100%; border-radius:10px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.05); color:#fff; padding:8px 10px; }
+.promo-form textarea { resize:vertical; }
+.split { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; }
+.promo-list { overflow:hidden; }
+.promo-table { display:flex; flex-direction:column; gap:16px; }
+.category-block { border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:12px; background:rgba(0,0,0,0.15); }
+.category-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.item-row { border-top:1px solid rgba(255,255,255,0.08); padding-top:12px; margin-top:12px; display:grid; gap:14px; grid-template-columns:1.2fr 1fr; }
+.item-row:first-of-type { border-top:none; margin-top:0; padding-top:0; }
+.item-meta { display:flex; gap:10px; flex-wrap:wrap; font-size:0.9rem; color:rgba(255,255,255,0.7); }
+.status-tag { padding:2px 8px; border-radius:999px; font-size:0.75rem; text-transform:uppercase; }
+.status-tag.available { background:rgba(34,197,94,0.2); color:#22c55e; }
+.status-tag.signed-out { background:rgba(244,114,182,0.15); color:#f472b6; }
+.return-tag { color:#fbbf24; }
+.location-tag { background:rgba(59,130,246,0.2); color:#60a5fa; padding:2px 8px; border-radius:999px; font-size:0.75rem; margin-left:6px; }
+.item-actions form { display:flex; flex-direction:column; gap:8px; padding:10px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); background:rgba(15,23,42,0.4); }
+.item-actions input, .item-actions textarea { width:100%; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.03); color:#fff; padding:6px 8px; }
+.item-actions button { width:100%; }
+.empty-state { text-align:center; padding:40px 10px; color:rgba(255,255,255,0.6); }
+@media (max-width: 1100px) {
+  .promo-grid { grid-template-columns:1fr; }
+  .item-row { grid-template-columns:1fr; }
+}
+</style>
+{% endblock %}
+
