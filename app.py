@@ -659,6 +659,49 @@ MYMOBILEAPI_USERNAME = os.environ.get("MYMOBILEAPI_USERNAME")
 MYMOBILEAPI_PASSWORD = os.environ.get("MYMOBILEAPI_PASSWORD")
 MYMOBILEAPI_URL = os.environ.get("MYMOBILEAPI_URL", "https://rest.mymobileapi.com/v3/BulkMessages")
 
+# ======== WooCommerce Webhook ========
+@app.route("/webhooks/woocommerce", methods=["POST"])
+def woocommerce_webhook():
+    """Webhook endpoint for WooCommerce to automatically sync new orders"""
+    try:
+        # Get the webhook payload
+        data = request.get_json(force=True, silent=True) or {}
+        
+        # Log the webhook received
+        app.logger.info(f"WooCommerce webhook received: {data.get('id', 'unknown')}")
+        
+        # Import the mapping function
+        from woocommerce_integration import map_woocommerce_to_local_order
+        
+        # Map WooCommerce order to local format
+        order_data = map_woocommerce_to_local_order(data)
+        
+        # Check if order already exists (by WooCommerce ID)
+        existing_order = Order.query.filter_by(
+            woocommerce_id=order_data['woocommerce_id']
+        ).first()
+        
+        if existing_order:
+            # Update existing order
+            for key, value in order_data.items():
+                if key != 'woocommerce_id':  # Don't update the ID
+                    setattr(existing_order, key, value)
+            db.session.commit()
+            app.logger.info(f"Updated WooCommerce order #{order_data['woocommerce_id']}")
+            return jsonify({"success": True, "message": "Order updated", "order_id": existing_order.id}), 200
+        else:
+            # Create new order
+            new_order = Order(**order_data)
+            db.session.add(new_order)
+            db.session.commit()
+            app.logger.info(f"Created new WooCommerce order #{order_data['woocommerce_id']}")
+            return jsonify({"success": True, "message": "Order created", "order_id": new_order.id}), 201
+            
+    except Exception as e:
+        app.logger.error(f"WooCommerce webhook error: {e}")
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
 def _ensure_tables():
     try:
         db.create_all()
