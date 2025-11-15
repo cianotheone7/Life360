@@ -562,6 +562,7 @@
                 <button class="tab-button active" onclick="switchModalTab('workflow')">Workflow</button>
                 <button class="tab-button" onclick="switchModalTab('barcodes')">Assign Barcodes</button>
                 <button class="tab-button" onclick="switchModalTab('logs')">Call Logs</button>
+                <button class="tab-button" onclick="switchModalTab('details')">Details</button>
                       </div>
             
             <!-- Workflow Tab -->
@@ -674,6 +675,144 @@
                     </div>
                 </div>
                       </div>
+            
+            <!-- Order Details Tab -->
+            <div id="details-tab" class="tab-content">
+                <div class="details-section">
+                    <h3>Complete Order Information</h3>
+                    
+                    <div class="details-grid">
+                        <!-- Customer Information -->
+                        <div class="detail-group">
+                            <h4 class="detail-group-title">Customer Information</h4>
+                            <div class="detail-item">
+                                <span class="detail-label">Customer Name:</span>
+                                <span class="detail-value" id="detail_customer_name">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Email:</span>
+                                <span class="detail-value" id="detail_customer_email">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Phone:</span>
+                                <span class="detail-value" id="detail_customer_phone">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Address:</span>
+                                <span class="detail-value" id="detail_address">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Order Information -->
+                        <div class="detail-group">
+                            <h4 class="detail-group-title">Order Information</h4>
+                            <div class="detail-item">
+                                <span class="detail-label">Order ID:</span>
+                                <span class="detail-value" id="detail_order_id">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Provider:</span>
+                                <span class="detail-value" id="detail_provider">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">WooCommerce ID:</span>
+                                <span class="detail-value" id="detail_woocommerce_id">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Ordered At:</span>
+                                <span class="detail-value" id="detail_ordered_at">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Created At:</span>
+                                <span class="detail-value" id="detail_created_at">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Items & Payment -->
+                        <div class="detail-group">
+                            <h4 class="detail-group-title">Items & Payment</h4>
+                            <div class="detail-item">
+                                <span class="detail-label">Items:</span>
+                                <span class="detail-value" id="detail_items">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Total Amount:</span>
+                                <span class="detail-value" id="detail_total_amount">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Payment Method:</span>
+                                <span class="detail-value" id="detail_payment_method">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Payment Date:</span>
+                                <span class="detail-value" id="detail_payment_date">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Status & Tracking -->
+                        <div class="detail-group">
+                            <h4 class="detail-group-title">Status & Tracking</h4>
+                            <div class="detail-item">
+                                <span class="detail-label">Order Status:</span>
+                                <span class="detail-value" id="detail_order_status">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Opt-In Status:</span>
+                                <span class="detail-value" id="detail_opt_in_status">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Email Status:</span>
+                                <span class="detail-value" id="detail_email_status">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Practitioner:</span>
+                                <span class="detail-value" id="detail_practitioner">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Workflow Status -->
+                        <div class="detail-group">
+                            <h4 class="detail-group-title">Workflow Status</h4>
+                            <div class="detail-item">
+                                <span class="detail-label">Sent Out:</span>
+                                <span class="detail-value" id="detail_sent_out">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Received Back:</span>
+                                <span class="detail-value" id="detail_received_back">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Kit Registered:</span>
+                                <span class="detail-value" id="detail_kit_registered">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Results Sent:</span>
+                                <span class="detail-value" id="detail_results_sent">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Paid:</span>
+                                <span class="detail-value" id="detail_paid">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Invoiced:</span>
+                                <span class="detail-value" id="detail_invoiced">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Completed At:</span>
+                                <span class="detail-value" id="detail_completed_at">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="detail-group detail-group-full">
+                            <h4 class="detail-group-title">Notes</h4>
+                            <div class="detail-item">
+                                <p class="detail-notes" id="detail_notes">No notes</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
                     </div>
 
         <div class="modal-footer">
@@ -1808,6 +1947,71 @@
 
 .woocommerce-badge {
     background: linear-gradient(135deg, #7c3aed, #5b21b6);
+}
+
+/* Details Tab Styles */
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.detail-group {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.detail-group-full {
+    grid-column: 1 / -1;
+}
+
+.detail-group-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #3b82f6;
+    margin: 0 0 16px 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    margin-right: 16px;
+}
+
+.detail-value {
+    color: #fff;
+    font-size: 0.95rem;
+    text-align: right;
+    word-break: break-word;
+}
+
+.detail-notes {
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    min-height: 60px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
     color: white;
     padding: 2px 6px;
     border-radius: 4px;
@@ -1874,6 +2078,10 @@
     }
     
     .workflow-checks {
+        grid-template-columns: 1fr;
+    }
+    
+    .details-grid {
         grid-template-columns: 1fr;
     }
     
@@ -1970,6 +2178,38 @@ function loadOrderData(orderId) {
             } else {
                 unitsList.innerHTML = '<p class="empty-state">No barcodes assigned yet.</p>';
             }
+            
+            // Populate Details tab
+            document.getElementById('detail_customer_name').textContent = data.customer_name || `${data.name || ''} ${data.surname || ''}`.trim() || '-';
+            document.getElementById('detail_customer_email').textContent = data.customer_email || '-';
+            document.getElementById('detail_customer_phone').textContent = data.customer_phone || '-';
+            document.getElementById('detail_address').textContent = data.address || '-';
+            
+            document.getElementById('detail_order_id').textContent = data.id || '-';
+            document.getElementById('detail_provider').textContent = data.provider || '-';
+            document.getElementById('detail_woocommerce_id').textContent = data.woocommerce_id ? `#${data.woocommerce_id}` : 'N/A';
+            document.getElementById('detail_ordered_at').textContent = data.ordered_at || '-';
+            document.getElementById('detail_created_at').textContent = data.created_at || '-';
+            
+            document.getElementById('detail_items').textContent = data.items_description || '-';
+            document.getElementById('detail_total_amount').textContent = data.total_amount ? `R${parseFloat(data.total_amount).toFixed(2)}` : '-';
+            document.getElementById('detail_payment_method').textContent = data.payment_method || '-';
+            document.getElementById('detail_payment_date').textContent = data.payment_date || '-';
+            
+            document.getElementById('detail_order_status').textContent = data.status || 'Pending';
+            document.getElementById('detail_opt_in_status').textContent = data.opt_in_status || 'Pending';
+            document.getElementById('detail_email_status').textContent = data.email_status || '-';
+            document.getElementById('detail_practitioner').textContent = data.practitioner_name || '-';
+            
+            document.getElementById('detail_sent_out').textContent = data.sent_out ? '✓ Yes' : '✗ No';
+            document.getElementById('detail_received_back').textContent = data.received_back ? '✓ Yes' : '✗ No';
+            document.getElementById('detail_kit_registered').textContent = data.kit_registered ? '✓ Yes' : '✗ No';
+            document.getElementById('detail_results_sent').textContent = data.results_sent ? '✓ Yes' : '✗ No';
+            document.getElementById('detail_paid').textContent = data.paid ? '✓ Yes' : '✗ No';
+            document.getElementById('detail_invoiced').textContent = data.invoiced ? '✓ Yes' : '✗ No';
+            document.getElementById('detail_completed_at').textContent = data.completed_at || '-';
+            
+            document.getElementById('detail_notes').textContent = data.notes || 'No notes';
         })
         .catch(error => {
             console.error('Error loading order data:', error);
