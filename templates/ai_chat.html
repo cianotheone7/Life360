@@ -2,6 +2,11 @@
 
 {% block title %}AI Assistant - Life360 Dashboard{% endblock %}
 
+{% block extra_head %}
+<!-- Puter.js SDK for free AI access -->
+<script src="https://js.puter.com/v2/"></script>
+{% endblock %}
+
 {% block content %}
 <div class="ai-chat-container">
     <!-- Header -->
@@ -801,35 +806,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    function sendMessage(message) {
+    async function sendMessage(message) {
         // Add user message
         addMessage(message, 'user');
         
         // Show loading
         const loadingId = addLoadingMessage();
         
-        // Send to AI
-        fetch('/api/ask_ai', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ prompt: message })
-        })
-        .then(response => response.json())
-        .then(data => {
-            removeLoadingMessage(loadingId);
+        try {
+            // Get system context from backend
+            const contextResponse = await fetch('/api/ai/context');
+            const contextData = await contextResponse.json();
             
-            if (data.ok) {
-                addMessage(data.answer, 'ai');
-            } else {
-                addMessage(`Error: ${data.error}`, 'ai', true);
-            }
-        })
-        .catch(error => {
+            // Build prompt with context
+            let fullPrompt = `You are an AI assistant for the Life360 practice management system.
+
+System Data:
+${contextData.context}
+
+User Question: ${message}
+
+Provide a helpful, concise response.`;
+            
+            // Use Puter.js free AI (client-side, no API key needed!)
+            const aiResponse = await puter.ai.chat(fullPrompt, {
+                model: 'gpt-4o-mini'
+            });
+            
             removeLoadingMessage(loadingId);
-            addMessage(`Network error: ${error.message}`, 'ai', true);
-        });
+            addMessage(aiResponse, 'ai');
+            
+        } catch (error) {
+            removeLoadingMessage(loadingId);
+            addMessage(`Error: ${error.message}`, 'ai', true);
+        }
     }
 
     function addMessage(content, sender, isError = false) {
@@ -914,25 +924,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Load quick stats
-    function loadQuickStats() {
+    async function loadQuickStats() {
         const panel = document.getElementById('quickStatsPanel');
         const content = document.getElementById('quickStatsContent');
         
         if (panel.style.display === 'none') {
             panel.style.display = 'block';
+            content.innerHTML = '<div class="ai-loading"><div class="ai-spinner"></div><span>Loading statistics...</span></div>';
             
-            fetch('/api/ai_stats')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.ok) {
-                        content.innerHTML = formatQuickStats(data.stats);
-                    } else {
-                        content.innerHTML = `<div class="alert alert-warning">${data.error}</div>`;
-                    }
-                })
-                .catch(error => {
-                    content.innerHTML = `<div class="alert alert-danger">Error loading stats: ${error.message}</div>`;
+            try {
+                // Get system context from backend
+                const contextResponse = await fetch('/api/ai/context');
+                const contextData = await contextResponse.json();
+                
+                // Ask Puter AI to summarize the stats
+                const prompt = `Based on this Life360 system data, provide a concise summary of key statistics:
+
+${contextData.context}
+
+Format as a brief summary highlighting the most important numbers.`;
+                
+                const aiResponse = await puter.ai.chat(prompt, {
+                    model: 'gpt-4o-mini'
                 });
+                
+                content.innerHTML = `<pre style="color: white; white-space: pre-wrap; line-height: 1.6;">${aiResponse}</pre>`;
+                
+            } catch (error) {
+                content.innerHTML = `<div class="ai-error-message">Failed to get stats: ${error.message}</div>`;
+            }
         } else {
             panel.style.display = 'none';
         }
