@@ -569,6 +569,41 @@ def start_fillout_sync():
 if os.environ.get("DATABASE_URL"):  # Only run on Azure with production DB
     start_fillout_sync()
 
+# ===== Gravity Forms Practitioner Sync Service =====
+# Start background thread to sync Gravity Forms practitioner submissions
+def start_gravity_forms_sync():
+    """Start Gravity Forms sync service in background thread"""
+    try:
+        from gravity_forms_integration import sync_gravity_forms_practitioners
+        
+        GF_SYNC_INTERVAL = 60  # Check every 60 seconds
+        
+        def run_gf_sync():
+            app.logger.info(f"Gravity Forms sync service starting (interval: {GF_SYNC_INTERVAL}s)")
+            while True:
+                try:
+                    # Sync only last hour to catch new submissions
+                    result = sync_gravity_forms_practitioners(hours_back=1)
+                    if result.get('success'):
+                        new_count = result.get('new_practitioners', 0)
+                        if new_count > 0:
+                            app.logger.info(f"Gravity Forms sync: {new_count} new practitioner(s) added")
+                    time.sleep(GF_SYNC_INTERVAL)
+                except Exception as e:
+                    app.logger.error(f"Gravity Forms sync error: {e}")
+                    time.sleep(60)  # Wait 1 min before retry on error
+        
+        # Start in daemon thread so it stops when app stops
+        gf_thread = threading.Thread(target=run_gf_sync, daemon=True)
+        gf_thread.start()
+        app.logger.info("Gravity Forms sync service thread started")
+    except Exception as e:
+        app.logger.warning(f"Could not start Gravity Forms sync: {e}")
+
+# Start Gravity Forms sync service when app initializes (only in production/Azure)
+if os.environ.get("DATABASE_URL"):  # Only run on Azure with production DB
+    start_gravity_forms_sync()
+
 # ---------- Helpers ----------
 
 def in_stock_q():
