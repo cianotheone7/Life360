@@ -27,7 +27,7 @@ class Life360AIService:
         self.PractitionerFlag = PractitionerFlag
         
         # Use Puter's free OpenAI API proxy (no API key needed!)
-        self.api_key = "no-key-needed"  # Puter doesn't require an API key
+        self.api_key = ""  # Puter doesn't require an API key
         self.url = "https://puter-llm-proxy.puter.com/v1/chat/completions"
         self.model = "gpt-4o-mini"  # Free model available through Puter
         self.site_url = ""
@@ -213,13 +213,12 @@ Please provide a helpful, accurate response based on the data above. Be specific
             }
             
             payload = {
-                'model': self.model,
+                'model': 'gpt-4o-mini',
                 'messages': [
                     {'role': 'system', 'content': self.get_system_prompt()},
                     {'role': 'user', 'content': full_prompt}
                 ],
-                'temperature': 0.3,
-                'max_tokens': 1000
+                'stream': False
             }
             
             # Retry logic for rate limiting
@@ -262,7 +261,8 @@ Please provide a helpful, accurate response based on the data above. Be specific
                         if response.status_code == 401:
                             return False, "", "API authentication failed"
                         elif response.status_code == 403:
-                            return False, "", "API access forbidden. Service may be temporarily unavailable."
+                            # Puter might be blocking - provide more details
+                            return False, "", f"API access denied. Response: {error_msg}. The free Puter API may have restrictions."
                         else:
                             return False, "", f"API error {response.status_code}: {error_msg}"
                 
