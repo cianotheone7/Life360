@@ -3,10 +3,10 @@
 WooCommerce Configuration Settings - Multiple Providers
 """
 
-# Sync Settings - FAST POLLING FOR REAL-TIME ORDERS
-SYNC_INTERVAL_SECONDS = 10  # Check every 10 seconds for new orders!
-SYNC_LOOKBACK_HOURS = 0.5   # Look back 30 minutes each check
-INITIAL_SYNC_DAYS = 3       # How many days to sync on first run
+# Sync Settings - BALANCED FOR PERFORMANCE AND COST
+SYNC_INTERVAL_SECONDS = 60   # Check every 60 seconds (1 minute) - good balance
+SYNC_LOOKBACK_HOURS = 1      # Look back 1 hour to catch any missed orders
+INITIAL_SYNC_DAYS = 3        # How many days to sync on first run
 
 # API Settings for ALL THREE PROVIDERS
 WOOCOMMERCE_PROVIDERS = {
