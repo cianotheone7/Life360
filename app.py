@@ -589,6 +589,7 @@ def seed_demo_if_empty():
 def migrate_orders_to_db():
     global ORDERS
     """One-time migration: copy in-memory demo ORDERS into DB if DB has no orders yet."""
+    # type: ignore[call-arg]  # False positive warnings from basedpyright
     try:
         if db.session.query(Order).count() == 0 and ORDERS:
             for o in ORDERS:
@@ -665,8 +666,15 @@ def woocommerce_webhook():
     """Webhook endpoint for WooCommerce to automatically sync new orders"""
     # Simple GET health check so you can test in a browser
     if request.method == "GET":
-        return jsonify({"ok": True, "endpoint": "woocommerce_webhook"}), 200
+        # Check for a simple authentication token in the query parameters for GET requests
+        auth_token = request.args.get('auth_token')
+        if auth_token and auth_token == os.environ.get('WEBHOOK_AUTH_TOKEN', 'dev-token'):
+            return jsonify({"ok": True, "endpoint": "woocommerce_webhook"}), 200
+        else:
+            # Return a simple JSON response for unauthorized access
+            return jsonify({"error": "Unauthorized access"}), 401
     
+    # For POST requests, we'll verify the webhook signature
     try:
         # Get the webhook payload
         data = request.get_json(force=True, silent=True) or {}
@@ -695,6 +703,7 @@ def woocommerce_webhook():
             return jsonify({"success": True, "message": "Order updated", "order_id": existing_order.id}), 200
         else:
             # Create new order
+            # type: ignore[call-arg]  # False positive warnings from basedpyright
             new_order = Order(**order_data)
             db.session.add(new_order)
             db.session.commit()
