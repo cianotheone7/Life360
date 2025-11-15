@@ -1,4 +1,4 @@
-import os, json, time, uuid, re, logging
+import os, json, time, uuid, re, logging, threading
 from datetime import datetime, date, timedelta, timezone
 from io import BytesIO
 from flask import Flask, render_template, request, redirect, url_for, flash, session, abort, send_from_directory, send_file, jsonify, make_response
@@ -501,6 +501,38 @@ class PromotionalTransaction(db.Model):
 PRACTITIONERS = []
 ORDERS = []
 
+
+# ---------- Helpers ----------
+
+# ===== WooCommerce Multi-Provider Sync Service =====
+# Start background thread to sync orders from all WooCommerce stores
+def start_woocommerce_sync():
+    """Start WooCommerce sync service in background thread"""
+    try:
+        from multi_woocommerce_sync import MultiProviderWooCommerceSync
+        from woocommerce_config import SYNC_INTERVAL_SECONDS
+        
+        def run_sync():
+            sync_service = MultiProviderWooCommerceSync()
+            app.logger.info(f"WooCommerce sync service starting (interval: {SYNC_INTERVAL_SECONDS}s)")
+            while True:
+                try:
+                    sync_service.run_sync_cycle()
+                    time.sleep(SYNC_INTERVAL_SECONDS)
+                except Exception as e:
+                    app.logger.error(f"WooCommerce sync error: {e}")
+                    time.sleep(60)  # Wait 1 min before retry on error
+        
+        # Start in daemon thread so it stops when app stops
+        sync_thread = threading.Thread(target=run_sync, daemon=True)
+        sync_thread.start()
+        app.logger.info("WooCommerce sync service thread started")
+    except Exception as e:
+        app.logger.warning(f"Could not start WooCommerce sync: {e}")
+
+# Start sync service when app initializes (only in production/Azure)
+if os.environ.get("DATABASE_URL"):  # Only run on Azure with production DB
+    start_woocommerce_sync()
 
 # ---------- Helpers ----------
 
