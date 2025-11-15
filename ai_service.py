@@ -18,8 +18,9 @@ class Life360AIService:
     def get_dashboard_context(self) -> str:
         """Get current dashboard data for AI context."""
         try:
+            # Lazy imports to avoid circular dependency
             from app import db, Practitioner, PractitionerFlag, Order, StockItem, StockUnit
-            from sqlalchemy import func, and_
+            from sqlalchemy import func
             
             # Practitioners
             total_prac = db.session.query(func.count(Practitioner.id)).scalar() or 0
@@ -68,8 +69,12 @@ PROVIDER BREAKDOWN:
 """
             return context
             
+        except ImportError as e:
+            # If imports fail, return basic info
+            return "Dashboard data temporarily unavailable."
         except Exception as e:
-            return f"Unable to retrieve dashboard data: {str(e)}"
+            # Log but don't crash
+            return f"Dashboard data retrieval error: {str(e)}"
         
     def is_configured(self) -> bool:
         """Check if AI service is properly configured."""
