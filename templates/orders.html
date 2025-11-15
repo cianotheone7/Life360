@@ -858,12 +858,40 @@
     background: rgba(255, 255, 255, 0.05);
     border-radius: 6px;
     margin-bottom: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.barcode-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
 }
 
 .barcode-code {
     color: #fff;
     font-family: monospace;
     font-weight: 500;
+}
+
+.barcode-status {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.barcode-info {
+    width: 100%;
+}
+
+.barcode-item-name {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
 }
 
 .call-log-item {
@@ -1900,6 +1928,28 @@ function loadOrderData(orderId) {
             document.getElementById('modal_results_sent').checked = data.results_sent || false;
             document.getElementById('modal_paid').checked = data.paid || false;
             document.getElementById('modal_invoiced').checked = data.invoiced || false;
+            
+            // Populate assigned barcodes
+            const unitsList = document.getElementById('modal_assigned_units');
+            if (data.assigned_units && data.assigned_units.length > 0) {
+                unitsList.innerHTML = '';
+                data.assigned_units.forEach(unit => {
+                    const barcodeItem = document.createElement('div');
+                    barcodeItem.className = 'barcode-item';
+                    barcodeItem.innerHTML = `
+                        <div class="barcode-details">
+                            <span class="barcode-code">${unit.barcode}</span>
+                            <span class="barcode-status">${unit.status}</span>
+                        </div>
+                        <div class="barcode-info">
+                            <span class="barcode-item-name">${unit.item_name} (${unit.provider})</span>
+                        </div>
+                    `;
+                    unitsList.appendChild(barcodeItem);
+                });
+            } else {
+                unitsList.innerHTML = '<p class="empty-state">No barcodes assigned yet.</p>';
+            }
         })
         .catch(error => {
             console.error('Error loading order data:', error);
