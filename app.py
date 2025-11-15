@@ -660,9 +660,13 @@ MYMOBILEAPI_PASSWORD = os.environ.get("MYMOBILEAPI_PASSWORD")
 MYMOBILEAPI_URL = os.environ.get("MYMOBILEAPI_URL", "https://rest.mymobileapi.com/v3/BulkMessages")
 
 # ======== WooCommerce Webhook ========
-@app.route("/webhooks/woocommerce", methods=["POST"])
+@app.route("/webhooks/woocommerce", methods=["POST","GET"], strict_slashes=False)
 def woocommerce_webhook():
     """Webhook endpoint for WooCommerce to automatically sync new orders"""
+    # Simple GET health check so you can test in a browser
+    if request.method == "GET":
+        return jsonify({"ok": True, "endpoint": "woocommerce_webhook"}), 200
+    
     try:
         # Get the webhook payload
         data = request.get_json(force=True, silent=True) or {}
