@@ -15,7 +15,6 @@ import secrets
 from dotenv import load_dotenv
 from pathlib import Path as _P
 from jinja2 import TemplateNotFound
-from migrations import run_migrations
 
 # Load .env placed next to this file, regardless of CWD
 load_dotenv(dotenv_path=_P(__file__).with_name('.env'))
@@ -2931,89 +2930,6 @@ def delete_order(order_id):
         db.session.rollback()
         flash("Failed to delete order.", "error")
     return redirect(url_for("orders"))
-@app.post("/api/ask_ai")
-def ask_ai():
-    """Enhanced AI endpoint using Life360AIService for comprehensive responses."""
-    try:
-        from ai_service import ai_service
-        
-        data = request.get_json(force=True, silent=True) or {}
-        user_query = (data.get("prompt") or "").strip()
-        
-        if not user_query:
-            return {"ok": False, "error": "Please provide a question or query."}
-        
-        # Process the query using our enhanced AI service
-        result = ai_service.process_query(user_query)
-        
-        return result
-        
-    except ImportError:
-        # Fallback to basic responses if AI service not available
-        return {"ok": False, "error": "AI service not available. Please check configuration."}
-    except Exception as e:
-        app.logger.error(f"AI endpoint error: {e}")
-        return {"ok": False, "error": f"Internal error: {str(e)}"}
-
-@app.get("/api/ai_stats")
-def ai_stats():
-    """Get quick statistics for AI dashboard."""
-    try:
-        from ai_service import ai_service
-        stats = ai_service.get_quick_stats()
-        return {"ok": True, "stats": stats}
-    except ImportError:
-        return {"ok": False, "error": "AI service not available"}
-    except Exception as e:
-        app.logger.error(f"AI stats error: {e}")
-        return {"ok": False, "error": f"Internal error: {str(e)}"}
-
-@app.get("/api/ai/context")
-def ai_context():
-    """Get system data context for client-side AI (Puter.js)."""
-    try:
-        from ai_service import ai_service
-        
-        # Get comprehensive data
-        data = ai_service.get_comprehensive_data_context()
-        
-        # Format as a readable string for the AI prompt
-        if "error" in data:
-            return {"ok": False, "error": data["error"]}
-        
-        # Build a concise summary for the AI
-        summary = data.get("summary", {})
-        context_text = f"""SYSTEM OVERVIEW:
-- Total Orders: {summary.get('total_orders', 0)} (Completed: {summary.get('completed_orders', 0)}, Pending: {summary.get('pending_orders', 0)})
-- Practitioners: {summary.get('total_practitioners', 0)} (Onboarded: {summary.get('onboarded_practitioners', 0)})
-- Stock Units: {summary.get('total_stock_units', 0)}
-
-STOCK ITEMS ({len(data.get('stock_items', []))}):
-{chr(10).join([f"  - {item['name']}: {item['current_stock']} units, Provider: {item['provider']}, Expiry: {item['expiry_date'] or 'N/A'}" for item in data.get('stock_items', [])[:20]])}
-
-RECENT ORDERS ({len(data.get('orders', []))}):
-{chr(10).join([f"  - Order #{order['id']}: {order['provider']}, Status: {order['status']}, Customer: {order['customer_name']}" for order in data.get('orders', [])[:15]])}
-
-PRACTITIONERS ({len(data.get('practitioners', []))}):
-{chr(10).join([f"  - {p['first_name']} {p['last_name']}: {p['provider']}, Onboarded: {p['onboarded']}" for p in data.get('practitioners', [])[:15]])}
-
-PROVIDER STATS:
-{chr(10).join([f"  - {provider}: {stats['orders']} orders, {stats['practitioners']} practitioners, {stats['stock_items']} stock items" for provider, stats in summary.get('provider_stats', {}).items()])}
-        """
-        
-        return {"ok": True, "context": context_text, "timestamp": data.get("timestamp")}
-        
-    except ImportError:
-        return {"ok": False, "error": "AI service not available"}
-    except Exception as e:
-        app.logger.error(f"AI context error: {e}")
-        return {"ok": False, "error": f"Internal error: {str(e)}"}
-
-@app.route("/ai-chat")
-def ai_chat():
-    """AI Chat interface page."""
-    user = session.get("user")
-    return render_template("ai_chat.html", user=user)
 
 # ------------ Friendly template error (avoid opaque 500) ------------
 @app.errorhandler(TemplateNotFound)
