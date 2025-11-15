@@ -31,15 +31,12 @@
         </label>
         <label>Category
           <select name="category">
-            {% for cat in (categories or []) %}
-              <option value="{{ cat }}">{{ cat }}</option>
-            {% endfor %}
-            {% if not categories %}
-              <option value="Gift">Gift</option>
-              <option value="Banner">Banner</option>
-              <option value="Gazebo">Gazebo</option>
-              <option value="Other">Other</option>
-            {% endif %}
+            <option value="Gift">Gift</option>
+            <option value="Banner">Banner</option>
+            <option value="Gazebo">Gazebo</option>
+            <option value="Stand">Stand</option>
+            <option value="Brochure">Brochure</option>
+            <option value="Other">Other</option>
           </select>
         </label>
         <label>Description
@@ -143,16 +140,16 @@
                         <form method="post" action="{{ url_for('promotions_return', item_id=item.id) }}">
                           <div class="split">
                             <label>Qty
-                              <input name="return_qty" type="number" min="1" max="{{ item.display_signed_out or 1 }}" value="{{ 1 if item.display_signed_out else 0 }}" {% if item.display_signed_out == 0 %}disabled{% endif %}>
+                              <input name="return_qty" type="number" min="1" max="{{ item.display_signed_out or 1 }}" value="{{ 1 if item.display_signed_out else 0 }}">
                             </label>
                             <label>Returned by
-                              <input name="returned_by" placeholder="Staff member" {% if item.display_signed_out == 0 %}disabled{% endif %}>
+                              <input name="returned_by" placeholder="Staff member" required>
                             </label>
                           </div>
                           <label>Notes
-                            <input name="return_notes" placeholder="Condition / feedback" {% if item.display_signed_out == 0 %}disabled{% endif %}>
+                            <input name="return_notes" placeholder="Condition / feedback">
                           </label>
-                          <button class="btn" type="submit" {% if item.display_signed_out == 0 %}disabled{% endif %}>Confirm Return</button>
+                          <button class="btn" type="submit">Confirm Return</button>
                         </form>
                       </div>
                     </div>
