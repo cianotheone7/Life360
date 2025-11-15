@@ -2777,7 +2777,25 @@ def get_order_json(order_id):
         "awaiting_payment": o.awaiting_payment,
         "payment_notes": o.payment_notes or "",
         "payment_date": o.payment_date.isoformat() if o.payment_date else None,
-        "assigned_units": assigned_units
+        "assigned_units": assigned_units,
+        # WooCommerce & Customer fields
+        "customer_name": o.customer_name or "",
+        "name": o.name or "",
+        "surname": o.surname or "",
+        "customer_email": o.customer_email or "",
+        "customer_phone": o.customer_phone or "",
+        "address": o.address or "",
+        "provider": o.provider or "",
+        "woocommerce_id": o.woocommerce_id,
+        "items_description": o.items_description or "",
+        "total_amount": float(o.total_amount) if o.total_amount else None,
+        "payment_method": o.payment_method or "",
+        "ordered_at": o.ordered_at.isoformat() if o.ordered_at else None,
+        "order_date": o.order_date.isoformat() if o.order_date else None,
+        "created_at": o.created_at.isoformat() if o.created_at else None,
+        "completed_at": o.completed_at.isoformat() if o.completed_at else None,
+        "email_status": o.email_status or "",
+        "fillout_submission_id": o.fillout_submission_id or ""
     })
 
 @app.post("/orders/<int:order_id>/update", endpoint="update_order")
