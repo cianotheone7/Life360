@@ -25,7 +25,7 @@ WOOCOMMERCE_PROVIDERS = {
         'timeout': 30
     },
     'partner_portal': {
-        'base_url': 'https://partnerportal.co.za',  # Update with actual URL
+        'base_url': 'https://life360affiliate.health',
         'consumer_key': 'ck_d916da3e796a218919cc419fa3fa02dd4f487428',
         'consumer_secret': 'cs_22a25024dbc5c341f5507c6d2b44b6f60c586ca7',
         'api_version': 'wc/v3',
