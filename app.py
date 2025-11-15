@@ -1897,6 +1897,7 @@ def promotions_sign_out(item_id):
     signed_out_by = (request.form.get("signed_out_by") or "").strip()
     expected_return_date = parse_date(request.form.get("expected_return_date"))
     sign_out_notes = (request.form.get("sign_out_notes") or "").strip() or None
+    barcode = (request.form.get("barcode") or "").strip() or None
     qty_raw = request.form.get("sign_out_qty") or "1"
 
     try:
@@ -1927,10 +1928,18 @@ def promotions_sign_out(item_id):
     item.signed_out_by = signed_out_by
     item.signed_out_date = datetime.utcnow()
     item.expected_return_date = expected_return_date
-    item.sign_out_notes = sign_out_notes
+    
+    # Include barcode in sign-out notes if provided
+    if barcode:
+        item.sign_out_notes = f"Barcode: {barcode}" + (f" | {sign_out_notes}" if sign_out_notes else "")
+    else:
+        item.sign_out_notes = sign_out_notes
+    
     item.last_returned_by = None
     db.session.commit()
-    flash(f"{qty} unit(s) of {item.name} signed out by {signed_out_by}.", "success")
+    
+    barcode_msg = f" (Barcode: {barcode})" if barcode else ""
+    flash(f"{qty} unit(s) of {item.name} signed out by {signed_out_by}{barcode_msg}.", "success")
     return redirect(url_for("promotions_home"))
 
 @app.post("/gifts/<int:item_id>/return")

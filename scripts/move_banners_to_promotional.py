@@ -97,8 +97,8 @@ def move_banners_to_promotional():
                     unit.promotional_notes = f"Moved to Promotional Item ID {promo_item.id}: {item_name}"
                 print(f"    Barcode {unit.barcode}: {unit.status}")
             
-            # Mark the stock item as moved (don't delete it, preserve for history)
-            stock_item.notes = (stock_item.notes or "") + f"\n[MOVED TO PROMOTIONAL ITEMS #{promo_item.id} on {datetime.utcnow().strftime('%Y-%m-%d')}]"
+            # Note: Stock item remains for historical reference
+            # (StockItem doesn't have notes field, so we just leave it as is)
             
             moved_items.append({
                 'name': item_name,

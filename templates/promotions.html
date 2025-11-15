@@ -64,9 +64,6 @@
         <label>Cost (optional)
           <input name="cost" type="number" step="0.01" placeholder="e.g. 1200">
         </label>
-        <label>Notes
-          <textarea name="notes" rows="2" placeholder="Special handling or contacts"></textarea>
-        </label>
         <button class="btn" type="submit">Add Item</button>
       </form>
     </section>
@@ -111,9 +108,6 @@
                       {% if item.description %}
                         <p class="muted">{{ item.description }}</p>
                       {% endif %}
-                      {% if item.notes %}
-                        <p class="muted">Notes: {{ item.notes }}</p>
-                      {% endif %}
                       <div class="item-buttons">
                         <button type="button" class="btn secondary" onclick="togglePromoForm('{{ item.id }}','signout')">Sign Out</button>
                         <button type="button" class="btn" onclick="togglePromoForm('{{ item.id }}','return')">Return</button>
@@ -133,10 +127,13 @@
                               <input name="expected_return_date" type="date" {% if item.display_available == 0 %}disabled{% endif %}>
                             </label>
                           </div>
+                          <label>Barcode
+                            <input name="barcode" placeholder="Scan or type barcode" {% if item.display_available == 0 %}disabled{% endif %}>
+                          </label>
                           <label>Signed out by
                             <input name="signed_out_by" placeholder="Staff member" {% if item.display_available == 0 %}disabled{% endif %}>
                           </label>
-                          <label>Notes
+                          <label>Purpose
                             <input name="sign_out_notes" placeholder="Purpose / destination" {% if item.display_available == 0 %}disabled{% endif %}>
                           </label>
                           <button class="btn secondary" type="submit" {% if item.display_available == 0 %}disabled{% endif %}>Confirm Sign Out</button>
