@@ -94,7 +94,7 @@ Key areas you can help with:
 Provide accurate, helpful responses based on the dashboard data provided. Be concise but informative.
 If asked about specific details not in the data, let the user know what information is available."""
 
-    def query_ai(self, user_prompt: str, include_context: bool = False) -> Tuple[bool, str, str]:
+    def query_ai(self, user_prompt: str, include_context: bool = True) -> Tuple[bool, str, str]:
         """Query A4F API with user prompt and optional dashboard context."""
         if not self.is_configured():
             return False, "", "AI service not configured"
