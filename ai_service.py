@@ -75,7 +75,7 @@ PROVIDER BREAKDOWN:
         except Exception as e:
             # Log but don't crash
             return f"Dashboard data retrieval error: {str(e)}"
-        
+    
     def is_configured(self) -> bool:
         """Check if AI service is properly configured."""
         return bool(self.api_key)
@@ -94,7 +94,7 @@ Key areas you can help with:
 Provide accurate, helpful responses based on the dashboard data provided. Be concise but informative.
 If asked about specific details not in the data, let the user know what information is available."""
 
-    def query_ai(self, user_prompt: str, include_context: bool = True) -> Tuple[bool, str, str]:
+    def query_ai(self, user_prompt: str, include_context: bool = False) -> Tuple[bool, str, str]:
         """Query A4F API with user prompt and optional dashboard context."""
         if not self.is_configured():
             return False, "", "AI service not configured"
@@ -107,10 +107,14 @@ If asked about specific details not in the data, let the user know what informat
             
             messages = [{"role": "system", "content": self.get_system_prompt()}]
             
-            # Add dashboard context if requested
+            # Add dashboard context if requested (disabled by default to prevent errors)
             if include_context:
-                context = self.get_dashboard_context()
-                messages.append({"role": "system", "content": context})
+                try:
+                    context = self.get_dashboard_context()
+                    messages.append({"role": "system", "content": context})
+                except Exception as ctx_error:
+                    # Log but continue without context
+                    pass
             
             messages.append({"role": "user", "content": user_prompt})
             
