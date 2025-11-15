@@ -110,7 +110,7 @@ db = SQLAlchemy(app)
 # Provider rename map (canonicalization)
 # =========================
 RENAME_MAP = {
-    "Umvuzo Fedhealth": "Intelligene Fedhealth",
+    "Fedhealth": "Intelligene Fedhealth",
     "Umvuzo Intelligene": "Intelligene Umvuzo",  # legacy
 }
 REVERSE_MAP = {}

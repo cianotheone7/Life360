@@ -42,7 +42,7 @@
                             <option value="Intelligene">Intelligene</option>
                             <option value="Healthy Me">Healthy Me</option>
                             <option value="Sam Wearables">Sam Wearables</option>
-                            <option value="Umvuzo Fedhealth">Umvuzo Fedhealth</option>
+                            <option value="Fedhealth">Fedhealth</option>
                             <option value="Umvuzo Intelligene">Umvuzo Intelligene</option>
       </select>
                     </div>
@@ -168,7 +168,7 @@
                                             <label for="edit_provider_{{ t.id }}">Provider</label>
                                             <select id="edit_provider_{{ t.id }}" name="provider">
                                                 <option value="">Select Provider</option>
-                    {% for p in ['Geneway','Optiway','Enbiosis','Intelligene','Healthy Me','Sam Wearables','Umvuzo Fedhealth','Umvuzo Intelligene'] %}
+                    {% for p in ['Geneway','Optiway','Enbiosis','Intelligene','Healthy Me','Sam Wearables','Fedhealth','Umvuzo Intelligene'] %}
                                                     <option value="{{ p }}" {{ 'selected' if t.provider==p else '' }}>{{ p }}</option>
                     {% endfor %}
                   </select>

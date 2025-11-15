@@ -34,7 +34,7 @@ class SecurityValidator:
     
     # Provider normalization map
     PROVIDER_MAP = {
-        "Umvuzo Fedhealth": "Intelligene Fedhealth",
+        "Fedhealth": "Intelligene Fedhealth",
         "Umvuzo Intelligene": "Intelligene Umvuzo",
     }
     
