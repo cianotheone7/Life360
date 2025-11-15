@@ -234,11 +234,11 @@ Please provide a helpful, accurate response based on the data above. Be specific
                         result = response.json()
                         choices = result.get('choices', [])
                         if not choices:
-                            return False, "", "No response from OpenRouter"
+                            return False, "", "No response from AI service"
                         
                         content = choices[0].get('message', {}).get('content', '')
                         if not content:
-                            return False, "", "Empty response from OpenRouter"
+                            return False, "", "Empty response from AI service"
                         
                         return True, content, ""
                     
@@ -249,7 +249,7 @@ Please provide a helpful, accurate response based on the data above. Be specific
                             time.sleep(retry_delay * (attempt + 1))
                             continue
                         else:
-                            return False, "", "OpenRouter API rate limit exceeded. Please wait a moment and try again."
+                            return False, "", "API rate limit exceeded. Please wait a moment and try again."
                     
                     else:
                         # Other HTTP errors
@@ -260,11 +260,11 @@ Please provide a helpful, accurate response based on the data above. Be specific
                             error_msg = response.text[:500]
                         
                         if response.status_code == 401:
-                            return False, "", "OpenRouter API key is invalid or expired"
+                            return False, "", "API authentication failed"
                         elif response.status_code == 403:
-                            return False, "", "OpenRouter API access forbidden. Check your account status."
+                            return False, "", "API access forbidden. Service may be temporarily unavailable."
                         else:
-                            return False, "", f"OpenRouter API error {response.status_code}: {error_msg}"
+                            return False, "", f"API error {response.status_code}: {error_msg}"
                 
                 except requests.exceptions.Timeout:
                     if attempt < max_retries:
