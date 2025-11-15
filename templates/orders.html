@@ -1881,6 +1881,9 @@ function openOrderModal(orderId) {
     const modal = document.getElementById('orderModal');
     modal.style.display = 'flex';
     
+    // Reset to workflow tab
+    switchModalTab('workflow');
+    
     // Load order data
     loadOrderData(orderId);
 }
@@ -1892,21 +1895,27 @@ function closeOrderModal() {
 }
 
 function switchModalTab(tabName) {
-    // Hide all tabs
-    document.querySelectorAll('.tab-content').forEach(tab => {
+    const modal = document.getElementById('orderModal');
+    if (!modal) return;
+    
+    // Hide all modal tabs
+    modal.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
     });
     
-    // Remove active class from all buttons
-    document.querySelectorAll('.tab-button').forEach(btn => {
+    // Remove active class from all modal tab buttons
+    modal.querySelectorAll('.tab-button').forEach(btn => {
         btn.classList.remove('active');
     });
     
     // Show selected tab
-    document.getElementById(`${tabName}-tab`).classList.add('active');
+    const selectedTab = document.getElementById(`${tabName}-tab`);
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
     
     // Add active class to clicked button
-    const clickedButton = document.querySelector(`[onclick="switchModalTab('${tabName}')"]`);
+    const clickedButton = modal.querySelector(`[onclick="switchModalTab('${tabName}')"]`);
     if (clickedButton) {
         clickedButton.classList.add('active');
     }
