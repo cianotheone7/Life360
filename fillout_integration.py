@@ -270,12 +270,9 @@ def sync_fillout_submissions(hours_back=24, form_keys=None):
                             ).first()
                             
                             if existing_order:
-                                # Update existing order with new formatted data
-                                for key, value in order_data.items():
-                                    if key != 'fillout_submission_id':  # Don't update the ID
-                                        setattr(existing_order, key, value)
-                                total_updated += 1
-                                print(f"Updated submission #{order_data['fillout_submission_id']}")
+                                # Skip existing submissions - only want new ones
+                                print(f"Skipped existing submission #{order_data['fillout_submission_id']}")
+                                continue
                             else:
                                 # Create new order
                                 new_order = Order(**order_data)

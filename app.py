@@ -534,6 +534,41 @@ def start_woocommerce_sync():
 if os.environ.get("DATABASE_URL"):  # Only run on Azure with production DB
     start_woocommerce_sync()
 
+# ===== Fillout Form Sync Service =====
+# Start background thread to sync Fillout form submissions
+def start_fillout_sync():
+    """Start Fillout sync service in background thread"""
+    try:
+        from fillout_integration import sync_fillout_submissions
+        
+        FILLOUT_SYNC_INTERVAL = 60  # Check every 60 seconds
+        
+        def run_fillout_sync():
+            app.logger.info(f"Fillout sync service starting (interval: {FILLOUT_SYNC_INTERVAL}s)")
+            while True:
+                try:
+                    # Sync only last hour to catch new submissions
+                    result = sync_fillout_submissions(hours_back=1)
+                    if result.get('success'):
+                        new_count = result.get('new_orders', 0)
+                        if new_count > 0:
+                            app.logger.info(f"Fillout sync: {new_count} new submission(s) added")
+                    time.sleep(FILLOUT_SYNC_INTERVAL)
+                except Exception as e:
+                    app.logger.error(f"Fillout sync error: {e}")
+                    time.sleep(60)  # Wait 1 min before retry on error
+        
+        # Start in daemon thread so it stops when app stops
+        fillout_thread = threading.Thread(target=run_fillout_sync, daemon=True)
+        fillout_thread.start()
+        app.logger.info("Fillout sync service thread started")
+    except Exception as e:
+        app.logger.warning(f"Could not start Fillout sync: {e}")
+
+# Start Fillout sync service when app initializes (only in production/Azure)
+if os.environ.get("DATABASE_URL"):  # Only run on Azure with production DB
+    start_fillout_sync()
+
 # ---------- Helpers ----------
 
 def in_stock_q():
