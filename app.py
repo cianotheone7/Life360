@@ -1066,52 +1066,68 @@ def practitioners_new():
 def orders_view():
     filter_param = request.args.get('filter')  # Get filter parameter from URL
     
-    if DEMO_MODE:
-        seed_demo_if_empty()
-        migrate_orders_to_db()
+    try:
+        if DEMO_MODE:
+            seed_demo_if_empty()
+            migrate_orders_to_db()
 
-    db_orders = db.session.query(Order).order_by(Order.created_at.desc()).all()
-    orders = []
-    for o in db_orders:
-        opt_in = o.opt_in_status
-        # Normalize "Pending" or empty string to None
-        if opt_in and opt_in.strip().lower() == "pending":
-            opt_in = None
-        orders.append({
-            "id": o.id, "provider": o.provider, "name": o.name, "surname": o.surname,
-            "ordered_at": o.ordered_at.isoformat() if o.ordered_at else None,
-            "created_at": o.created_at or datetime.now(timezone.utc),
-            "status": o.status, "opt_in_status": (opt_in if opt_in and opt_in.strip() else None), "notes": o.notes or "",
-            "email_status": o.email_status or "ok",
-            "sent_out": o.sent_out, "received_back": o.received_back, "kit_registered": o.kit_registered,
-            "results_sent": o.results_sent, "paid": o.paid, "invoiced": o.invoiced,
-            "practitioner_name": o.practitioner_name or "",
-            "items": [{"sku": it.sku, "qty": it.qty} for it in o.items],
-            "time_left": time_left({"created_at": o.created_at or datetime.now(timezone.utc)}),
-            # WooCommerce fields
-            "woocommerce_id": o.woocommerce_id,
-            "customer_name": o.customer_name,
-            "customer_email": o.customer_email,
-            "customer_phone": o.customer_phone,
-            "address": o.address,
-            "items_description": o.items_description,
-            "total_amount": o.total_amount,
-            "order_date": o.order_date.isoformat() if o.order_date else None,
-            "payment_method": o.payment_method,
-            "is_woocommerce": bool(o.woocommerce_id),
-        })
-    
-    # Apply filtering if requested
-    if filter_param == 'completed':
-        orders = [o for o in orders if o.get('status', '').lower().find('completed') != -1]
-    elif filter_param == 'pending':
-        orders = [o for o in orders if o.get('status', '').lower().find('completed') == -1 and o.get('status', '').lower().find('cancel') == -1]
-    elif filter_param == 'woocommerce':
-        orders = [o for o in orders if o.get('is_woocommerce', False)]
-    
-    assigned_units = {}
-    for ou in OrderUnit.query.all():
-        assigned_units.setdefault(ou.order_id, []).append(ou)
+        # Optimized query with eager loading to reduce database roundtrips (critical for Azure)
+        from sqlalchemy.orm import joinedload
+        
+        db_orders = db.session.query(Order)\
+            .options(joinedload(Order.items))\
+            .order_by(Order.created_at.desc())\
+            .all()
+        
+        # Fetch all related data in single queries to minimize database hits
+        assigned_units = {}
+        for ou in OrderUnit.query.all():
+            assigned_units.setdefault(ou.order_id, []).append(ou)
+        
+        call_logs_list = OrderCallLog.query.all()
+        
+        orders = []
+        for o in db_orders:
+            opt_in = o.opt_in_status
+            # Normalize "Pending" or empty string to None
+            if opt_in and opt_in.strip().lower() == "pending":
+                opt_in = None
+            orders.append({
+                "id": o.id, "provider": o.provider, "name": o.name, "surname": o.surname,
+                "ordered_at": o.ordered_at.isoformat() if o.ordered_at else None,
+                "created_at": o.created_at or datetime.now(timezone.utc),
+                "status": o.status, "opt_in_status": (opt_in if opt_in and opt_in.strip() else None), "notes": o.notes or "",
+                "email_status": o.email_status or "ok",
+                "sent_out": o.sent_out, "received_back": o.received_back, "kit_registered": o.kit_registered,
+                "results_sent": o.results_sent, "paid": o.paid, "invoiced": o.invoiced,
+                "practitioner_name": o.practitioner_name or "",
+                "items": [{"sku": it.sku, "qty": it.qty} for it in o.items],
+                "time_left": time_left({"created_at": o.created_at or datetime.now(timezone.utc)}),
+                # WooCommerce fields
+                "woocommerce_id": o.woocommerce_id,
+                "customer_name": o.customer_name,
+                "customer_email": o.customer_email,
+                "customer_phone": o.customer_phone,
+                "address": o.address,
+                "items_description": o.items_description,
+                "total_amount": o.total_amount,
+                "order_date": o.order_date.isoformat() if o.order_date else None,
+                "payment_method": o.payment_method,
+                "is_woocommerce": bool(o.woocommerce_id),
+            })
+        
+        # Apply filtering if requested
+        if filter_param == 'completed':
+            orders = [o for o in orders if o.get('status', '').lower().find('completed') != -1]
+        elif filter_param == 'pending':
+            orders = [o for o in orders if o.get('status', '').lower().find('completed') == -1 and o.get('status', '').lower().find('cancel') == -1]
+        elif filter_param == 'woocommerce':
+            orders = [o for o in orders if o.get('is_woocommerce', False)]
+    except Exception as e:
+        app.logger.error(f"Orders view error: {e}")
+        # Return empty data on error to prevent page crash
+        orders = []
+        assigned_units = {}
 
 
     # Build tab/provider buckets so the template can render fast and correctly
