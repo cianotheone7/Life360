@@ -472,6 +472,32 @@ class PromotionalItem(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     notes = db.Column(db.Text, nullable=True)  # General notes
 
+class PromotionalTransaction(db.Model):
+    """Track all sign-outs and returns for promotional items"""
+    __tablename__ = 'promotional_transaction'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(db.Integer, db.ForeignKey('promotional_item.id'), nullable=False)
+    transaction_type = db.Column(db.String(20), nullable=False)  # 'sign_out' or 'return'
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    
+    # Person tracking
+    person_name = db.Column(db.String(120), nullable=False)  # Who signed out or returned
+    
+    # Sign-out specific
+    barcode = db.Column(db.String(100), nullable=True)  # Barcode if provided
+    purpose = db.Column(db.Text, nullable=True)  # Purpose of sign-out
+    expected_return_date = db.Column(db.Date, nullable=True)
+    
+    # Return specific
+    condition_notes = db.Column(db.Text, nullable=True)  # Condition on return
+    
+    # Timestamp
+    transaction_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationship
+    item = db.relationship('PromotionalItem', backref='transactions')
+
 # ---------------- Dummy Data ----------------
 PRACTITIONERS = []
 ORDERS = []
@@ -1936,6 +1962,19 @@ def promotions_sign_out(item_id):
         item.sign_out_notes = sign_out_notes
     
     item.last_returned_by = None
+    
+    # Create transaction record
+    transaction = PromotionalTransaction(  # type: ignore[call-arg]
+        item_id=item.id,
+        transaction_type='sign_out',
+        quantity=qty,
+        person_name=signed_out_by,
+        barcode=barcode,
+        purpose=sign_out_notes,
+        expected_return_date=expected_return_date,
+        transaction_date=datetime.utcnow()
+    )
+    db.session.add(transaction)
     db.session.commit()
     
     barcode_msg = f" (Barcode: {barcode})" if barcode else ""
@@ -1982,7 +2021,19 @@ def promotions_return(item_id):
     item.last_returned_by = returned_by
     item.last_returned_date = datetime.utcnow()
     item.return_notes = return_notes
+    
+    # Create transaction record
+    transaction = PromotionalTransaction(  # type: ignore[call-arg]
+        item_id=item.id,
+        transaction_type='return',
+        quantity=qty,
+        person_name=returned_by,
+        condition_notes=return_notes,
+        transaction_date=datetime.utcnow()
+    )
+    db.session.add(transaction)
     db.session.commit()
+    
     flash(f"{qty} unit(s) of {item.name} returned by {returned_by}.", "success")
     return redirect(url_for("promotions_home"))
 
