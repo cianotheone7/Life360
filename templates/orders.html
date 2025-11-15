@@ -810,6 +810,14 @@
                                 <p class="detail-notes" id="detail_notes">No notes</p>
                             </div>
                         </div>
+
+                        <!-- Form Submission Data (for Fillout orders) -->
+                        <div class="detail-group detail-group-full" id="detail_form_data_section" style="display: none;">
+                            <h4 class="detail-group-title">📋 Form Submission Data</h4>
+                            <div class="detail-item">
+                                <div class="form-data-container" id="detail_form_data">No form data</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2021,6 +2029,37 @@
     display: inline-block;
 }
 
+.form-data-container {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.form-field {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.form-field:last-child {
+    border-bottom: none;
+}
+
+.form-field-label {
+    font-weight: 600;
+    color: #3b82f6;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+
+.form-field-value {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.95rem;
+    padding-left: 12px;
+}
+
 .woocommerce-order .order-header {
     border-bottom: 1px solid rgba(124, 58, 237, 0.1);
 }
@@ -2210,6 +2249,56 @@ function loadOrderData(orderId) {
             document.getElementById('detail_completed_at').textContent = data.completed_at || '-';
             
             document.getElementById('detail_notes').textContent = data.notes || 'No notes';
+            
+            // Populate Form Submission Data (if available)
+            const formDataSection = document.getElementById('detail_form_data_section');
+            const formDataContainer = document.getElementById('detail_form_data');
+            
+            if (data.raw_api_data && data.fillout_submission_id) {
+                try {
+                    const formData = JSON.parse(data.raw_api_data);
+                    const questions = formData.questions || [];
+                    
+                    if (questions.length > 0) {
+                        formDataSection.style.display = 'block';
+                        formDataContainer.innerHTML = '';
+                        
+                        questions.forEach(q => {
+                            const fieldDiv = document.createElement('div');
+                            fieldDiv.className = 'form-field';
+                            
+                            const label = document.createElement('div');
+                            label.className = 'form-field-label';
+                            label.textContent = q.name || q.id || 'Unknown Field';
+                            
+                            const value = document.createElement('div');
+                            value.className = 'form-field-value';
+                            
+                            // Format the value
+                            let displayValue = '';
+                            if (q.value === null || q.value === undefined || q.value === '') {
+                                displayValue = '-';
+                            } else if (Array.isArray(q.value)) {
+                                displayValue = q.value.join(', ');
+                            } else {
+                                displayValue = String(q.value);
+                            }
+                            
+                            value.textContent = displayValue;
+                            
+                            fieldDiv.appendChild(label);
+                            fieldDiv.appendChild(value);
+                            formDataContainer.appendChild(fieldDiv);
+                        });
+                    } else {
+                        formDataSection.style.display = 'none';
+                    }
+                } catch (e) {
+                    formDataSection.style.display = 'none';
+                }
+            } else {
+                formDataSection.style.display = 'none';
+            }
         })
         .catch(error => {
             console.error('Error loading order data:', error);
