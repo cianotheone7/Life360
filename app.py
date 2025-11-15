@@ -2534,7 +2534,7 @@ def logout():
 @app.before_request
 def _require_login():
     # Allow these paths without auth
-    allow_prefixes = ("/static/", "/favicon.ico")
+    allow_prefixes = ("/static/", "/favicon.ico", "/webhooks/")
     _rp = REDIRECT_PATH or "/getAToken"
     allow_exact = {"/login", "/logout", "/auth/diagnostics", "/health", "/healthz"}
     if _rp and _rp != "/":
