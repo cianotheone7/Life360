@@ -12,7 +12,7 @@ class Life360AIService:
     def __init__(self):
         # A4F API configuration
         self.api_key = "ddc-a4f-c56fc7b02b3d485c94d5f8024554922f"
-        self.url = "https://www.a4f.co/api/chat/completions"
+        self.url = "https://api.a4f.co/v1/chat/completions"  # Fixed endpoint
         self.model = "provider-5/gpt-4o-mini"
     
     def get_dashboard_context(self) -> str:
@@ -120,7 +120,9 @@ If asked about specific details not in the data, let the user know what informat
             
             payload = {
                 "model": self.model,
-                "messages": messages
+                "messages": messages,
+                "temperature": 0.7,
+                "max_tokens": 500
             }
             
             response = requests.post(
