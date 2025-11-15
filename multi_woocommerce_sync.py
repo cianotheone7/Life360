@@ -67,7 +67,26 @@ class MultiProviderWooCommerceSync:
                 logger.info(f"{provider_name}: Found {len(orders)} orders")
                 return orders
             else:
-                logger.error(f"{provider_name}: API error {response.status_code}")
+                logger.error(f"{provider_name}: API error {response.status_code} - URL: {response.url}")
+                logger.error(f"{provider_name}: Response: {response.text[:200]}")
+                # Try without 'after' parameter if 404 (some WooCommerce versions don't support it)
+                if response.status_code == 404:
+                    logger.info(f"{provider_name}: Retrying without 'after' parameter...")
+                    params_no_after = {
+                        'per_page': 100,
+                        'orderby': 'date',
+                        'order': 'desc'
+                    }
+                    retry_response = requests.get(
+                        api_url,
+                        auth=auth,
+                        params=params_no_after,
+                        timeout=config.get('timeout', 30)
+                    )
+                    if retry_response.status_code == 200:
+                        orders = retry_response.json()
+                        logger.info(f"{provider_name}: Found {len(orders)} orders (without date filter)")
+                        return orders
                 return []
                 
         except Exception as e:
