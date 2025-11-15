@@ -68,20 +68,20 @@ provide exact figures and details."""
         """Get comprehensive data context for AI analysis."""
         try:
             # Stock data
-            stock_items = db.session.query(StockItem).all()
+            stock_items = self.db.session.query(self.StockItem).all()
             stock_data = []
             for item in stock_items:
-                in_stock_count = db.session.query(func.count(StockUnit.id)).filter(
-                    and_(StockUnit.item_id == item.id, StockUnit.status == "In Stock")
+                in_stock_count = self.db.session.query(func.count(self.StockUnit.id)).filter(
+                    and_(self.StockUnit.item_id == item.id, self.StockUnit.status == "In Stock")
                 ).scalar() or 0
                 
                 # Get batch number summary with quantities
-                batch_data = db.session.query(
-                    StockUnit.batch_number, 
-                    func.count(StockUnit.id)
+                batch_data = self.db.session.query(
+                    self.StockUnit.batch_number, 
+                    func.count(self.StockUnit.id)
                 ).filter(
-                    and_(StockUnit.item_id == item.id, StockUnit.status == "In Stock", StockUnit.batch_number.isnot(None))
-                ).group_by(StockUnit.batch_number).all()
+                    and_(self.StockUnit.item_id == item.id, self.StockUnit.status == "In Stock", self.StockUnit.batch_number.isnot(None))
+                ).group_by(self.StockUnit.batch_number).all()
                 
                 if batch_data:
                     if len(batch_data) == 1:
@@ -104,7 +104,7 @@ provide exact figures and details."""
                 })
             
             # Orders data
-            orders = db.session.query(Order).order_by(Order.created_at.desc()).limit(100).all()
+            orders = self.db.session.query(self.Order).order_by(self.Order.created_at.desc()).limit(100).all()
             orders_data = []
             for order in orders:
                 items = [{"sku": item.sku, "qty": item.qty} for item in order.items]
@@ -128,11 +128,11 @@ provide exact figures and details."""
                 })
             
             # Practitioners data
-            practitioners = db.session.query(Practitioner).all()
+            practitioners = self.db.session.query(self.Practitioner).all()
             practitioners_data = []
             for practitioner in practitioners:
                 # Get flags
-                flags = PractitionerFlag.query.filter_by(pid=practitioner.id).first()
+                flags = self.PractitionerFlag.query.filter_by(pid=practitioner.id).first()
                 practitioners_data.append({
                     "id": practitioner.id,
                     "provider": practitioner.provider,
@@ -151,21 +151,21 @@ provide exact figures and details."""
                 })
             
             # Summary statistics
-            total_orders = db.session.query(Order).count()
-            completed_orders = db.session.query(Order).filter(Order.status.ilike("%completed%")).count()
+            total_orders = self.db.session.query(self.Order).count()
+            completed_orders = self.db.session.query(self.Order).filter(self.Order.status.ilike("%completed%")).count()
             pending_orders = total_orders - completed_orders
             
-            total_practitioners = db.session.query(Practitioner).count()
-            onboarded_practitioners = db.session.query(PractitionerFlag).filter_by(onboarded=True).count()
+            total_practitioners = self.db.session.query(self.Practitioner).count()
+            onboarded_practitioners = self.db.session.query(self.PractitionerFlag).filter_by(onboarded=True).count()
             
-            total_stock_units = db.session.query(func.count(StockUnit.id)).filter(StockUnit.status == "In Stock").scalar() or 0
+            total_stock_units = self.db.session.query(func.count(self.StockUnit.id)).filter(self.StockUnit.status == "In Stock").scalar() or 0
             
             # Provider breakdown
             provider_stats = {}
             for provider in ["Geneway", "Optiway", "Enbiosis", "Intelligene", "Healthy Me", "Intelligene Fedhealth", "Geko", "Reboot"]:
-                provider_orders = db.session.query(func.count(Order.id)).filter(Order.provider == provider).scalar() or 0
-                provider_practitioners = db.session.query(func.count(Practitioner.id)).filter(Practitioner.provider == provider).scalar() or 0
-                provider_stock = db.session.query(func.count(StockItem.id)).filter(StockItem.provider == provider).scalar() or 0
+                provider_orders = self.db.session.query(func.count(self.Order.id)).filter(self.Order.provider == provider).scalar() or 0
+                provider_practitioners = self.db.session.query(func.count(self.Practitioner.id)).filter(self.Practitioner.provider == provider).scalar() or 0
+                provider_stock = self.db.session.query(func.count(self.StockItem.id)).filter(self.StockItem.provider == provider).scalar() or 0
                 provider_stats[provider] = {
                     "orders": provider_orders,
                     "practitioners": provider_practitioners,
@@ -292,26 +292,26 @@ Please provide a helpful, accurate response based on the data above. Be specific
     def get_quick_stats(self) -> Dict[str, Any]:
         """Get quick statistics for dashboard display."""
         try:
-            total_orders = db.session.query(Order).count()
-            completed_orders = db.session.query(Order).filter(Order.status.ilike("%completed%")).count()
+            total_orders = self.db.session.query(self.Order).count()
+            completed_orders = self.db.session.query(self.Order).filter(self.Order.status.ilike("%completed%")).count()
             pending_orders = total_orders - completed_orders
             
-            total_practitioners = db.session.query(Practitioner).count()
-            onboarded_practitioners = db.session.query(PractitionerFlag).filter_by(onboarded=True).count()
+            total_practitioners = self.db.session.query(self.Practitioner).count()
+            onboarded_practitioners = self.db.session.query(self.PractitionerFlag).filter_by(onboarded=True).count()
             
-            total_stock_units = db.session.query(func.count(StockUnit.id)).filter(StockUnit.status == "In Stock").scalar() or 0
+            total_stock_units = self.db.session.query(func.count(self.StockUnit.id)).filter(self.StockUnit.status == "In Stock").scalar() or 0
             
             # Low stock items (<= 2 units)
             low_stock_items = []
-            stock_counts = db.session.query(
-                StockItem.id.label("item_id"),
-                StockItem.name,
-                StockItem.provider,
-                func.count(StockUnit.id).label("in_stock")
+            stock_counts = self.db.session.query(
+                self.StockItem.id.label("item_id"),
+                self.StockItem.name,
+                self.StockItem.provider,
+                func.count(self.StockUnit.id).label("in_stock")
             ).outerjoin(
-                StockUnit,
-                and_(StockUnit.item_id == StockItem.id, StockUnit.status == "In Stock")
-            ).group_by(StockItem.id, StockItem.name, StockItem.provider).all()
+                self.StockUnit,
+                and_(self.StockUnit.item_id == self.StockItem.id, self.StockUnit.status == "In Stock")
+            ).group_by(self.StockItem.id, self.StockItem.name, self.StockItem.provider).all()
             
             for item in stock_counts:
                 if int(item.in_stock) <= 2:
@@ -325,8 +325,8 @@ Please provide a helpful, accurate response based on the data above. Be specific
             today = date.today()
             horizon = today + timedelta(days=30)
             expiring_items = []
-            for item in db.session.query(StockItem).filter(
-                and_(StockItem.expiry_date != None, StockItem.expiry_date <= horizon)
+            for item in self.db.session.query(self.StockItem).filter(
+                and_(self.StockItem.expiry_date != None, self.StockItem.expiry_date <= horizon)
             ).all():
                 expiring_items.append({
                     "name": item.name,
