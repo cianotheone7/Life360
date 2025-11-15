@@ -14,6 +14,62 @@ class Life360AIService:
         self.api_key = "ddc-a4f-c56fc7b02b3d485c94d5f8024554922f"
         self.url = "https://www.a4f.co/api/chat/completions"
         self.model = "provider-5/gpt-4o-mini"
+    
+    def get_dashboard_context(self) -> str:
+        """Get current dashboard data for AI context."""
+        try:
+            from app import db, Practitioner, PractitionerFlag, Order, StockItem, StockUnit
+            from sqlalchemy import func, and_
+            
+            # Practitioners
+            total_prac = db.session.query(func.count(Practitioner.id)).scalar() or 0
+            onboarded = db.session.query(func.count(PractitionerFlag.id)).filter_by(onboarded=True).scalar() or 0
+            pending_prac = total_prac - onboarded
+            
+            # Orders
+            total_orders = db.session.query(Order).count()
+            completed_orders = db.session.query(Order).filter(Order.status.ilike("%completed%")).count()
+            cancelled_orders = db.session.query(Order).filter(Order.status.ilike("%cancel%")).count()
+            pending_orders = total_orders - completed_orders - cancelled_orders
+            
+            # Stock
+            total_stock_items = db.session.query(func.count(StockItem.id)).scalar() or 0
+            total_stock_units = db.session.query(func.count(StockUnit.id)).filter(
+                StockUnit.status == "In Stock"
+            ).scalar() or 0
+            
+            # Get provider breakdown for orders
+            providers_data = db.session.query(
+                Order.provider,
+                func.count(Order.id)
+            ).group_by(Order.provider).all()
+            
+            provider_summary = ", ".join([f"{p[0]}: {p[1]} orders" for p in providers_data if p[0]]) if providers_data else "No data"
+            
+            context = f"""LIFE360 DASHBOARD DATA:
+
+PRACTITIONERS:
+- Total: {total_prac}
+- Onboarded: {onboarded}
+- Pending Onboarding: {pending_prac}
+
+ORDERS:
+- Total: {total_orders}
+- Completed: {completed_orders}
+- Pending: {pending_orders}
+- Cancelled: {cancelled_orders}
+
+STOCK:
+- Total Items: {total_stock_items}
+- Units In Stock: {total_stock_units}
+
+PROVIDER BREAKDOWN:
+{provider_summary}
+"""
+            return context
+            
+        except Exception as e:
+            return f"Unable to retrieve dashboard data: {str(e)}"
         
     def is_configured(self) -> bool:
         """Check if AI service is properly configured."""
@@ -21,11 +77,20 @@ class Life360AIService:
     
     def get_system_prompt(self) -> str:
         """Get the system prompt for AI responses."""
-        return """You are an AI assistant for the Life360 Dashboard, a healthcare management system. 
-Provide accurate, helpful responses. Be concise but informative."""
+        return """You are an AI assistant for the Life360 Dashboard, a healthcare management system.
+You help users understand their data about practitioners, orders, and stock inventory.
 
-    def query_ai(self, user_prompt: str) -> Tuple[bool, str, str]:
-        """Query A4F API with user prompt."""
+Key areas you can help with:
+- Practitioner onboarding status and counts
+- Order status, completion rates, and provider breakdown
+- Stock inventory levels and availability
+- General questions about the dashboard data
+
+Provide accurate, helpful responses based on the dashboard data provided. Be concise but informative.
+If asked about specific details not in the data, let the user know what information is available."""
+
+    def query_ai(self, user_prompt: str, include_context: bool = True) -> Tuple[bool, str, str]:
+        """Query A4F API with user prompt and optional dashboard context."""
         if not self.is_configured():
             return False, "", "AI service not configured"
         
@@ -35,12 +100,18 @@ Provide accurate, helpful responses. Be concise but informative."""
                 'Content-Type': 'application/json'
             }
             
+            messages = [{"role": "system", "content": self.get_system_prompt()}]
+            
+            # Add dashboard context if requested
+            if include_context:
+                context = self.get_dashboard_context()
+                messages.append({"role": "system", "content": context})
+            
+            messages.append({"role": "user", "content": user_prompt})
+            
             payload = {
                 "model": self.model,
-                "messages": [
-                    {"role": "system", "content": self.get_system_prompt()},
-                    {"role": "user", "content": user_prompt}
-                ]
+                "messages": messages
             }
             
             response = requests.post(
