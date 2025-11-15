@@ -2931,6 +2931,28 @@ def delete_order(order_id):
         flash("Failed to delete order.", "error")
     return redirect(url_for("orders"))
 
+@app.post("/api/ask_ai")
+def ask_ai():
+    """AI endpoint using A4F API."""
+    try:
+        from ai_service import ai_service
+        
+        data = request.get_json(force=True, silent=True) or {}
+        user_query = (data.get("prompt") or "").strip()
+        
+        if not user_query:
+            return {"ok": False, "error": "Please provide a question or query."}
+        
+        # Process the query using A4F AI service
+        result = ai_service.process_query(user_query)
+        return result
+        
+    except ImportError:
+        return {"ok": False, "error": "AI service not available"}
+    except Exception as e:
+        app.logger.error(f"AI endpoint error: {e}")
+        return {"ok": False, "error": f"Internal error: {str(e)}"}
+
 # ------------ Friendly template error (avoid opaque 500) ------------
 @app.errorhandler(TemplateNotFound)
 def _tmpl_missing(e):
