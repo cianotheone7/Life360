@@ -71,9 +71,13 @@ class WooCommerceAPI:
             logging.error(f"WooCommerce API error getting order {order_id}: {e}")
             return None
 
-def map_woocommerce_to_local_order(wc_order):
+def map_woocommerce_to_local_order(wc_order, provider_name=None):
     """
     Map WooCommerce order data to local Order model format
+    
+    Args:
+        wc_order: WooCommerce order data
+        provider_name: Optional provider name override (e.g., 'Geneway', 'Optiway', 'Partner_portal')
     """
     import json
     
@@ -111,10 +115,24 @@ def map_woocommerce_to_local_order(wc_order):
         'failed': 'Pending'
     }
     
-    # Extract line items
+    # Extract line items  
     items = []
     for item in wc_order.get('line_items', []):
         items.append(f"{item.get('name', 'Unknown')} (Qty: {item.get('quantity', 1)})")
+    
+    # Determine provider - use provided name or fallback to URL-based detection
+    if provider_name:
+        # Map provider keys to exact display names
+        provider_map = {
+            'geneway': 'Geneway',
+            'optiway': 'Optiway',
+            'partner_portal': 'Partner Portal'
+        }
+        provider = provider_map.get(provider_name.lower(), provider_name.title())
+    elif 'geneway.co.za' in WOOCOMMERCE_CONFIG.get('base_url', ''):
+        provider = 'Geneway'
+    else:
+        provider = 'Optiway'
     
     return {
         'woocommerce_id': wc_order.get('id'),
@@ -128,7 +146,7 @@ def map_woocommerce_to_local_order(wc_order):
         'order_date': datetime.fromisoformat(wc_order.get('date_created', '').replace('Z', '+00:00')),
         'notes': wc_order.get('customer_note', ''),
         'payment_method': wc_order.get('payment_method_title', ''),
-        'provider': 'Geneway' if 'geneway.co.za' in WOOCOMMERCE_CONFIG['base_url'] else 'Optiway',  # Dynamic provider based on API URL
+        'provider': provider,
         'ordered_at': datetime.fromisoformat(wc_order.get('date_created', '').replace('Z', '+00:00')),
         'name': billing.get('first_name', ''),
         'surname': billing.get('last_name', ''),

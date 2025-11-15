@@ -97,12 +97,8 @@ class MultiProviderWooCommerceSync:
         """Sync a single WooCommerce order to the database"""
         try:
             with app.app_context():
-                # Map WooCommerce order to local format
-                order_data = map_woocommerce_to_local_order(woo_order)
-                
-                # Ensure provider name is set
-                if not order_data.get('provider'):
-                    order_data['provider'] = provider_name.title()
+                # Map WooCommerce order to local format with provider name
+                order_data = map_woocommerce_to_local_order(woo_order, provider_name)
                 
                 # Check if order already exists
                 existing_order = Order.query.filter_by(
