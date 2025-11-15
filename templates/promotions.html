@@ -261,7 +261,9 @@
 .promo-action[hidden]{ display:none; }
 .promo-action form { display:flex; flex-direction:column; gap:8px; padding:10px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); background:rgba(15,23,42,0.4); }
 .item-actions input, .item-actions textarea { width:100%; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.03); color:#fff; padding:6px 8px; }
-.item-actions button { width:100%; }
+.item-actions input:disabled, .item-actions textarea:disabled { opacity:0.5; cursor:not-allowed; }
+.item-actions button { width:100%; cursor:pointer !important; pointer-events:auto !important; }
+.item-actions button:disabled { opacity:0.5; cursor:not-allowed !important; }
 .inline-delete { margin:0; }
 .inline-delete button { width:auto; }
 .btn.danger { background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; }
