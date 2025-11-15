@@ -81,14 +81,17 @@
             {% if buckets and buckets.pending %}
                 {% for provider, orders in buckets.pending.items() %}
                     <div class="provider-section">
-                        <div class="provider-header">
+                        <div class="provider-header" onclick="toggleProvider(this)">
                             <div class="provider-info">
                                 <h3 class="provider-name">{{ provider }}</h3>
                                 <span class="provider-count">{{ orders|length }} orders</span>
                             </div>
+                            <button class="collapse-btn">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
                         </div>
                         
-                        <div class="orders-grid">
+                        <div class="orders-grid" style="display: block;">
                             {% for order in orders %}
                                 <div class="order-card {{ 'woocommerce-order' if order.is_woocommerce else '' }}" data-order-id="{{ order.id }}">
                                     <div class="order-header">
@@ -351,14 +354,17 @@
             {% if buckets and buckets.completed %}
                 {% for provider, orders in buckets.completed.items() %}
                     <div class="provider-section">
-                        <div class="provider-header">
+                        <div class="provider-header" onclick="toggleProvider(this)">
                             <div class="provider-info">
                                 <h3 class="provider-name">{{ provider }}</h3>
                                 <span class="provider-count">{{ orders|length }} orders</span>
                       </div>
+                            <button class="collapse-btn">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
                           </div>
                         
-                        <div class="orders-grid">
+                        <div class="orders-grid" style="display: block;">
                             {% for order in orders %}
                                 <div class="order-card completed {{ 'woocommerce-order' if order.is_woocommerce else '' }}" data-order-id="{{ order.id }}">
                                     <div class="order-header">
@@ -1103,6 +1109,39 @@
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px 16px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.provider-header:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+}
+
+.collapse-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.collapse-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+.collapse-btn i {
+    transition: transform 0.3s ease;
+}
+
+.provider-header.collapsed .collapse-btn i {
+    transform: rotate(-90deg);
 }
 
 .provider-info {
@@ -2184,6 +2223,20 @@ function selectCourierProvider() {
         }
         
         window.location.href = url;
+    }
+}
+
+// Toggle provider section collapse
+function toggleProvider(headerElement) {
+    const section = headerElement.closest('.provider-section');
+    const grid = section.querySelector('.orders-grid');
+    
+    if (grid.style.display === 'none') {
+        grid.style.display = 'block';
+        headerElement.classList.remove('collapsed');
+    } else {
+        grid.style.display = 'none';
+        headerElement.classList.add('collapsed');
     }
 }
 </script>
