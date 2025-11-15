@@ -26,15 +26,16 @@ class Life360AIService:
         self.Practitioner = Practitioner
         self.PractitionerFlag = PractitionerFlag
         
-        self.api_key = os.environ.get('OPENROUTER_API_KEY', '').strip()
-        self.url = os.environ.get('OPENROUTER_URL', 'https://openrouter.ai/api/v1/chat/completions').strip()
-        self.model = os.environ.get('OPENROUTER_MODEL', 'openai/gpt-4o-mini').strip()
-        self.site_url = os.environ.get('OPENROUTER_SITE_URL', '').strip()
-        self.title = os.environ.get('OPENROUTER_TITLE', 'Life360 Dashboard Ask AI').strip()
+        # Use Puter's free OpenAI API proxy (no API key needed!)
+        self.api_key = "no-key-needed"  # Puter doesn't require an API key
+        self.url = "https://puter-llm-proxy.puter.com/v1/chat/completions"
+        self.model = "gpt-4o-mini"  # Free model available through Puter
+        self.site_url = ""
+        self.title = "Life360 Dashboard Ask AI"
         
     def is_configured(self) -> bool:
-        """Check if OpenRouter is properly configured."""
-        return bool(self.api_key)
+        """Check if AI service is properly configured."""
+        return True  # Puter is always available, no API key needed
     
     def get_system_prompt(self) -> str:
         """Get the system prompt for AI responses."""
@@ -192,10 +193,7 @@ provide exact figures and details."""
             return {"error": f"Failed to retrieve data: {str(e)}"}
     
     def query_openrouter(self, user_prompt: str, context_data: Dict[str, Any]) -> Tuple[bool, str, str]:
-        """Query OpenRouter with user prompt and context data."""
-        if not self.is_configured():
-            return False, "", "OpenRouter API key not configured"
-        
+        """Query Puter's free OpenAI API proxy with user prompt and context data."""
         try:
             # Prepare context
             context_str = json.dumps(context_data, indent=2)
@@ -211,9 +209,6 @@ USER QUESTION: {user_prompt}
 Please provide a helpful, accurate response based on the data above. Be specific with numbers and details when relevant."""
 
             headers = {
-                'Authorization': f'Bearer {self.api_key}',
-                'HTTP-Referer': self.site_url,
-                'X-Title': self.title,
                 'Content-Type': 'application/json'
             }
             
@@ -287,7 +282,7 @@ Please provide a helpful, accurate response based on the data above. Be specific
         except requests.exceptions.RequestException as e:
             return False, "", f"Network error: {str(e)}"
         except Exception as e:
-            return False, "", f"Unexpected error: {str(e)}"
+            return False, "", f"Puter API error: {str(e)}"
     
     def get_quick_stats(self) -> Dict[str, Any]:
         """Get quick statistics for dashboard display."""
@@ -379,7 +374,7 @@ Please provide a helpful, accurate response based on the data above. Be specific
             return {
                 "ok": False,
                 "error": error,
-                "fallback": "OpenRouter service unavailable. Please check your configuration."
+                "fallback": "AI service temporarily unavailable. Please try again."
             }
 
 
