@@ -2703,51 +2703,6 @@ def create_order():
     
     return redirect(url_for("orders"))
 
-# ======== OpenRouter (optional) ========
-OPENROUTER_API_KEY = (os.environ.get('OPENROUTER_API_KEY') or '').strip()
-OPENROUTER_URL = (os.environ.get('OPENROUTER_URL') or 'https://openrouter.ai/api/v1/chat/completions').strip()
-OPENROUTER_MODEL = (os.environ.get('OPENROUTER_MODEL') or 'openai/gpt-4o-mini').strip()
-OPENROUTER_SITE_URL = (os.environ.get('OPENROUTER_SITE_URL') or '').strip()
-OPENROUTER_TITLE = (os.environ.get('OPENROUTER_TITLE') or 'Life360 Dashboard Ask AI').strip()
-
-def openrouter_complete(model, system, user, flask_request=None, timeout=60):
-    # Call OpenRouter chat completions safely. Returns (ok, answer, error_str).
-    if not OPENROUTER_API_KEY:
-        return (False, '', 'OPENROUTER_API_KEY missing')
-
-    try:
-        site = OPENROUTER_SITE_URL or (flask_request.host_url.rstrip('/') if flask_request else '')
-        headers = {
-            'Authorization': f'Bearer {OPENROUTER_API_KEY}',
-            'HTTP-Referer': site,
-            'X-Title': OPENROUTER_TITLE or 'Life360 Dashboard Ask AI',
-        }
-        payload = {
-            'model': model or OPENROUTER_MODEL,
-            'messages': [
-                {'role': 'system', 'content': system or ''},
-                {'role': 'user', 'content': user or ''},
-            ],
-        }
-        resp = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=timeout)
-        if resp.status_code != 200:
-            try:
-                errj = resp.json()
-                msg = errj.get('error', {}).get('message') or errj.get('message') or str(errj)
-            except Exception:
-                msg = resp.text[:500]
-            return (False, '', f'{resp.status_code} from OpenRouter: {msg}')
-
-        j = resp.json()
-        choice0 = (j.get('choices') or [{}])[0]
-        content = (choice0.get('message') or {}).get('content', '')
-        if not content:
-            return (False, '', 'No content in OpenRouter response')
-        return (True, content, '')
-    except requests.exceptions.RequestException as e:
-        return (False, '', f'Network error: {e}')
-    except Exception as e:
-        return (False, '', f'Unexpected error: {e}')
 
 @app.get("/orders/<int:order_id>/json")
 def get_order_json(order_id):

@@ -294,42 +294,32 @@ class HealthChecker:
             )
     
     def check_openrouter_service(self) -> HealthCheckResult:
-        """Check OpenRouter AI service connectivity."""
+        """Check AI service (Puter) connectivity."""
         start_time = time.time()
         
         try:
-            # Check if OpenRouter configuration is present
-            api_key = self.app.config.get('OPENROUTER_API_KEY')
-            if not api_key:
-                return HealthCheckResult(
-                    name="openrouter_service",
-                    status="degraded",
-                    message="OpenRouter AI service not configured",
-                    response_time_ms=(time.time() - start_time) * 1000
-                )
-            
-            # Test OpenRouter service endpoint
-            openrouter_url = self.app.config.get('OPENROUTER_URL', 'https://openrouter.ai/api/v1/chat/completions')
+            # Test Puter's free AI service endpoint
+            puter_url = 'https://puter-llm-proxy.puter.com/v1/chat/completions'
             
             # Just check if the endpoint is reachable
-            response = requests.head(openrouter_url, timeout=5)
+            response = requests.head(puter_url, timeout=5)
             
             return HealthCheckResult(
-                name="openrouter_service",
+                name="ai_service",
                 status="healthy",
-                message="OpenRouter AI service is accessible",
+                message="Puter AI service is accessible",
                 response_time_ms=(time.time() - start_time) * 1000,
                 details={
-                    "openrouter_url": openrouter_url,
+                    "puter_url": puter_url,
                     "response_status": response.status_code
                 }
             )
             
         except Exception as e:
             return HealthCheckResult(
-                name="openrouter_service",
+                name="ai_service",
                 status="unhealthy",
-                message=f"OpenRouter AI service check failed: {str(e)}",
+                message=f"AI service check failed: {str(e)}",
                 response_time_ms=(time.time() - start_time) * 1000
             )
     
