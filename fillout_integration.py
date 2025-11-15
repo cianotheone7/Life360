@@ -9,20 +9,40 @@ from datetime import datetime, timedelta
 from app import app, db, Order
 import logging
 
-# Fillout API Configuration
-FILLOUT_CONFIG = {
-    'api_key': 'sk_prod_Obu52hFB7sNbd3J53yNKwHuxcIgRJcUzOJ8u6W1je2UYyMG8Xc0v0fWnAIypxhvezv9U1BpVltuirpQvgo3opmvTEnsSR4FnT1t_32425',
-    'base_url': 'https://api.fillout.com/v1/api',
-    'form_id': 'mtETEnSwyius'  # Extracted from https://forms.fillout.com/t/mtETEnSwyius
+# Fillout API Configuration - Multiple Forms
+FILLOUT_FORMS = {
+    'umvuzo_intelligence': {
+        'api_key': 'sk_prod_Obu52hFB7sNbd3J53yNKwHuxcIgRJcUzOJ8u6W1je2UYyMG8Xc0v0fWnAIypxhvezv9U1BpVltuirpQvgo3opmvTEnsSR4FnT1t_32425',
+        'form_id': 'mtETEnSwyius',
+        'provider_name': 'Umvuzo Intelligene'
+    },
+    'healthy_me': {
+        'api_key': 'sk_prod_BpHnl0XBuJ6dvL55KzjZNGJ9QZzNBmdMiaPF5wpoGTYcan9UzCT85Ex6X6dnH5JtRXWoYTUEQ0EeLhkVj8qt66v72spdOuY5pdX_35176',
+        'form_id': 'v2FcQMTq4Fus',  # Healthy Me form
+        'provider_name': 'Healthy Me'
+    }
 }
+
+FILLOUT_BASE_URL = 'https://api.fillout.com/v1/api'
+
+# Default form to sync (only Healthy Me)
+DEFAULT_FORMS_TO_SYNC = ['healthy_me']
 
 class FilloutAPI:
     """Fillout REST API client"""
     
-    def __init__(self):
-        self.api_key = FILLOUT_CONFIG['api_key']
-        self.base_url = FILLOUT_CONFIG['base_url']
-        self.form_id = FILLOUT_CONFIG['form_id']
+    def __init__(self, form_key='umvuzo_intelligence'):
+        """
+        Initialize Fillout API client
+        
+        Args:
+            form_key: Key from FILLOUT_FORMS dict (default: 'umvuzo_intelligence')
+        """
+        form_config = FILLOUT_FORMS.get(form_key, FILLOUT_FORMS['umvuzo_intelligence'])
+        self.api_key = form_config['api_key']
+        self.base_url = FILLOUT_BASE_URL
+        self.form_id = form_config['form_id']
+        self.provider_name = form_config['provider_name']
         self.headers = {
             'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json'
@@ -66,9 +86,13 @@ class FilloutAPI:
             logging.error(f"Fillout API error getting form metadata: {e}")
             return None
 
-def map_fillout_to_local_order(submission):
+def map_fillout_to_local_order(submission, provider_name='Umvuzo Intelligene'):
     """
     Map Fillout submission data to local Order model format
+    
+    Args:
+        submission: Fillout submission data
+        provider_name: Provider name to use for this order
     """
     import json
     
@@ -162,7 +186,7 @@ def map_fillout_to_local_order(submission):
         comprehensive_notes += f"\n\nMessage: {message}"
     
     return {
-        'provider': 'Umvuzo Intelligene',  # Correct spelling as requested
+        'provider': provider_name,
         'name': full_name or 'Unknown',
         'surname': surname or '',
         'customer_name': customer_name,
@@ -180,96 +204,116 @@ def map_fillout_to_local_order(submission):
         'raw_api_data': raw_api_data  # Store complete API response
     }
 
-def sync_fillout_submissions(hours_back=24):
+def sync_fillout_submissions(hours_back=24, form_keys=None):
     """
     Sync Fillout submissions to local database as orders
     
     Args:
         hours_back: Number of hours back to sync submissions (default: 24)
+        form_keys: List of form keys to sync. If None, syncs only DEFAULT_FORMS_TO_SYNC
     """
+    if form_keys is None:
+        form_keys = DEFAULT_FORMS_TO_SYNC
+    elif isinstance(form_keys, str):
+        form_keys = [form_keys]
+    
     with app.app_context():
-        fillout_api = FilloutAPI()
+        total_all_synced = 0
+        total_all_new = 0
+        total_all_updated = 0
         
-        # Calculate date to sync from
-        sync_from = datetime.utcnow() - timedelta(hours=hours_back)
-        sync_from_iso = sync_from.isoformat() + 'Z'
-        
-        print(f"Syncing Fillout submissions from {sync_from.strftime('%Y-%m-%d %H:%M:%S')}")
-        
-        try:
-            # Get form metadata first
-            form_metadata = fillout_api.get_form_metadata()
-            if form_metadata:
-                print(f"Form: {form_metadata.get('name', 'Unknown Form')}")
+        for form_key in form_keys:
+            if form_key not in FILLOUT_FORMS:
+                print(f"Unknown form key: {form_key}")
+                continue
             
-            # Get only the last 3 submissions from Fillout
-            offset = 0
-            limit = 3  # Only get the last 3 submissions
-            total_synced = 0
-            total_updated = 0
-            total_new = 0
+            form_config = FILLOUT_FORMS[form_key]
+            fillout_api = FilloutAPI(form_key)
+            provider_name = form_config['provider_name']
             
-            print(f"Fetching last {limit} submissions...")
-            response = fillout_api.get_form_submissions(
-                limit=limit,
-                offset=offset
-            )
+            # Calculate date to sync from
+            sync_from = datetime.utcnow() - timedelta(hours=hours_back)
+            sync_from_iso = sync_from.isoformat() + 'Z'
             
-            submissions = response.get('responses', [])
-            if submissions:
+            print(f"\nSyncing {provider_name} from {sync_from.strftime('%Y-%m-%d %H:%M:%S')}")
+            
+            try:
+                # Get form metadata first
+                form_metadata = fillout_api.get_form_metadata()
+                if form_metadata:
+                    print(f"Form: {form_metadata.get('name', 'Unknown Form')}")
                 
-                for submission in submissions:
-                    try:
-                        # Map Fillout submission to local format
-                        order_data = map_fillout_to_local_order(submission)
-                        
-                        # Check if submission already exists (by Fillout submission ID)
-                        existing_order = Order.query.filter_by(
-                            fillout_submission_id=order_data['fillout_submission_id']
-                        ).first()
-                        
-                        if existing_order:
-                            # Update existing order with new formatted data
-                            for key, value in order_data.items():
-                                if key != 'fillout_submission_id':  # Don't update the ID
-                                    setattr(existing_order, key, value)
-                            total_updated += 1
-                            print(f"Updated submission #{order_data['fillout_submission_id']}")
-                        else:
-                            # Create new order
-                            new_order = Order(**order_data)
-                            db.session.add(new_order)
-                            total_new += 1
-                            print(f"Added new submission #{order_data['fillout_submission_id']} - {order_data['customer_name']}")
-                        
-                        total_synced += 1
-                        
-                    except Exception as e:
-                        print(f"Error processing submission #{submission.get('submissionId', 'unknown')}: {e}")
-                        continue
-            
-            # Commit all changes
-            db.session.commit()
-            
-            print(f"\nFillout sync completed!")
-            print(f"   Total processed: {total_synced}")
-            print(f"   New submissions: {total_new}")
-            print(f"   Updated submissions: {total_updated}")
-            
-            return {
-                'success': True,
-                'total_synced': total_synced,
-                'new_orders': total_new,
-                'updated_orders': total_updated
-            }
-            
-        except Exception as e:
-            db.session.rollback()
-            print(f"Fillout sync failed: {e}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
+                # Get only the last 3 submissions from Fillout
+                offset = 0
+                limit = 3  # Only get the last 3 submissions
+                total_synced = 0
+                total_updated = 0
+                total_new = 0
+                
+                print(f"Fetching last {limit} submissions...")
+                response = fillout_api.get_form_submissions(
+                    limit=limit,
+                    offset=offset
+                )
+                
+                submissions = response.get('responses', [])
+                if submissions:
+                    
+                    for submission in submissions:
+                        try:
+                            # Map Fillout submission to local format
+                            order_data = map_fillout_to_local_order(submission, provider_name)
+                            
+                            # Check if submission already exists (by Fillout submission ID)
+                            existing_order = Order.query.filter_by(
+                                fillout_submission_id=order_data['fillout_submission_id']
+                            ).first()
+                            
+                            if existing_order:
+                                # Update existing order with new formatted data
+                                for key, value in order_data.items():
+                                    if key != 'fillout_submission_id':  # Don't update the ID
+                                        setattr(existing_order, key, value)
+                                total_updated += 1
+                                print(f"Updated submission #{order_data['fillout_submission_id']}")
+                            else:
+                                # Create new order
+                                new_order = Order(**order_data)
+                                db.session.add(new_order)
+                                total_new += 1
+                                print(f"Added new submission #{order_data['fillout_submission_id']} - {order_data['customer_name']}")
+                            
+                            total_synced += 1
+                            
+                        except Exception as e:
+                            print(f"Error processing submission #{submission.get('submissionId', 'unknown')}: {e}")
+                            continue
+                
+                # Commit changes for this form
+                db.session.commit()
+                
+                print(f"{provider_name} sync completed: {total_synced} processed, {total_new} new, {total_updated} updated")
+                total_all_synced += total_synced
+                total_all_new += total_new
+                total_all_updated += total_updated
+                
+            except Exception as e:
+                db.session.rollback()
+                print(f"{provider_name} sync failed: {e}")
+                continue
+        
+        # Final summary
+        print(f"\nAll forms sync completed!")
+        print(f"   Total processed: {total_all_synced}")
+        print(f"   New submissions: {total_all_new}")
+        print(f"   Updated submissions: {total_all_updated}")
+        
+        return {
+            'success': True,
+            'total_synced': total_all_synced,
+            'new_orders': total_all_new,
+            'updated_orders': total_all_updated
+        }
 
 def test_fillout_connection():
     """Test Fillout API connection"""
