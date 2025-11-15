@@ -14,7 +14,7 @@ FILLOUT_FORMS = {
     'umvuzo_intelligence': {
         'api_key': 'sk_prod_Obu52hFB7sNbd3J53yNKwHuxcIgRJcUzOJ8u6W1je2UYyMG8Xc0v0fWnAIypxhvezv9U1BpVltuirpQvgo3opmvTEnsSR4FnT1t_32425',
         'form_id': 'mtETEnSwyius',
-        'provider_name': 'Umvuzo Intelligene'
+        'provider_name': 'Disease Management Requests'
     },
     'healthy_me': {
         'api_key': 'sk_prod_BpHnl0XBuJ6dvL55KzjZNGJ9QZzNBmdMiaPF5wpoGTYcan9UzCT85Ex6X6dnH5JtRXWoYTUEQ0EeLhkVj8qt66v72spdOuY5pdX_35176',
@@ -25,8 +25,8 @@ FILLOUT_FORMS = {
 
 FILLOUT_BASE_URL = 'https://api.fillout.com/v1/api'
 
-# Default form to sync (only Healthy Me)
-DEFAULT_FORMS_TO_SYNC = ['healthy_me']
+# Default forms to sync (both forms)
+DEFAULT_FORMS_TO_SYNC = ['umvuzo_intelligence', 'healthy_me']
 
 class FilloutAPI:
     """Fillout REST API client"""
