@@ -858,40 +858,12 @@
     background: rgba(255, 255, 255, 0.05);
     border-radius: 6px;
     margin-bottom: 8px;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-}
-
-.barcode-details {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
 }
 
 .barcode-code {
     color: #fff;
     font-family: monospace;
     font-weight: 500;
-}
-
-.barcode-status {
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    background: rgba(16, 185, 129, 0.2);
-    color: #10b981;
-}
-
-.barcode-info {
-    width: 100%;
-}
-
-.barcode-item-name {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.85rem;
 }
 
 .call-log-item {
@@ -1881,9 +1853,6 @@ function openOrderModal(orderId) {
     const modal = document.getElementById('orderModal');
     modal.style.display = 'flex';
     
-    // Reset to workflow tab
-    switchModalTab('workflow');
-    
     // Load order data
     loadOrderData(orderId);
 }
@@ -1895,27 +1864,21 @@ function closeOrderModal() {
 }
 
 function switchModalTab(tabName) {
-    const modal = document.getElementById('orderModal');
-    if (!modal) return;
-    
-    // Hide all modal tabs
-    modal.querySelectorAll('.tab-content').forEach(tab => {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
     });
     
-    // Remove active class from all modal tab buttons
-    modal.querySelectorAll('.tab-button').forEach(btn => {
+    // Remove active class from all buttons
+    document.querySelectorAll('.tab-button').forEach(btn => {
         btn.classList.remove('active');
     });
     
     // Show selected tab
-    const selectedTab = document.getElementById(`${tabName}-tab`);
-    if (selectedTab) {
-        selectedTab.classList.add('active');
-    }
+    document.getElementById(`${tabName}-tab`).classList.add('active');
     
     // Add active class to clicked button
-    const clickedButton = modal.querySelector(`[onclick="switchModalTab('${tabName}')"]`);
+    const clickedButton = document.querySelector(`[onclick="switchModalTab('${tabName}')"]`);
     if (clickedButton) {
         clickedButton.classList.add('active');
     }
